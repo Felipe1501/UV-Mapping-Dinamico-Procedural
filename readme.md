@@ -1,5 +1,9 @@
 PROJETO OVERLEAF - UV MAPPING DINAMICO E PROCEDURAL
 
+## PDF do trabalho
+
+[Visualizar PDF](./UV_Mapping_Dinamico_Procedural.pdf)
+
 Este projeto contém os arquivos em LaTeX utilizados para as entregas da
 disciplina Computação Gráfica e Processamento de Imagens, com o tema
 UV Mapping Dinâmico e Procedural.
