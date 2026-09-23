@@ -1,0 +1,8 @@
+
+O mapeamento de texturas, conhecido como \textit{texture mapping}, é uma técnica fundamental da Computação Gráfica para associar informações bidimensionais à superfície de objetos tridimensionais. Em sua forma tradicional, coordenadas denominadas \(U\) e \(V\) estabelecem a correspondência entre pontos de uma superfície 3D e posições em uma textura 2D. Heckbert \cite{heckbert1986} apresenta o mapeamento de texturas como uma técnica capaz de aumentar significativamente a riqueza visual das imagens sem exigir que todos os detalhes da superfície sejam modelados geometricamente.
+
+A partir dessa base, o mapeamento pode ser modificado durante a execução da aplicação. No caso do UV mapping dinâmico, as coordenadas podem sofrer translação, escala, rotação ou outras transformações dependentes de tempo, posição ou parâmetros de animação. Já o mapeamento procedural utiliza funções matemáticas e outros procedimentos para gerar padrões ou coordenadas sem depender exclusivamente de uma textura previamente desenhada.
+
+Este trabalho apresenta uma revisão bibliográfica sobre UV mapping dinâmico e procedural, abordando seus fundamentos, equações, funcionamento no pipeline gráfico, relação com a API Vulkan, aplicações práticas e utilização em jogos. Também são analisadas duas aplicações em jogos: \textit{Rocket League} e \textit{Marvel's Spider-Man Remastered}.
+
+A revisão utiliza, entre outras fontes, o trabalho clássico de Heckbert sobre texture mapping, o levantamento de Dong et al. sobre geração procedural de texturas bidimensionais e o levantamento de Smelik et al. sobre modelagem procedural para mundos virtuais. Os resumos dessas publicações são apresentados em capítulo próprio.

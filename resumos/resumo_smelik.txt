@@ -1,0 +1,3 @@
+Resumo - Smelik et al. (2014)
+
+Smelik et al. revisam métodos de modelagem procedural para mundos virtuais, incluindo terrenos, vegetação, rios, estradas, edifícios e cidades. Os autores destacam vantagens como variedade e redução da intervenção manual, mas também discutem desafios de controle e interatividade. A publicação é utilizada para relacionar proceduralidade à geração de conteúdo em ambientes virtuais.

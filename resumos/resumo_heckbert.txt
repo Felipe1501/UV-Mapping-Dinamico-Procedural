@@ -1,0 +1,3 @@
+Resumo - Heckbert (1986)
+
+Heckbert apresenta os fundamentos de texture mapping, destacando o mapeamento geométrico de uma textura sobre uma superfície e a filtragem necessária para reduzir aliasing. O trabalho mostra como texturas podem aumentar a riqueza visual sem exigir que todos os detalhes sejam modelados geometricamente. A publicação fundamenta o conceito de espaço de textura e é usada no trabalho como base para a explicação do UV mapping.

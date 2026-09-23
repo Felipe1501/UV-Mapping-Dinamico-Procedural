@@ -1,0 +1,311 @@
+\documentclass[12pt,a4paper]{report}
+
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{lmodern}
+
+\usepackage{geometry}
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage{float}
+
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{enumitem}
+
+\usepackage{hyperref}
+\usepackage{xurl}
+\usepackage{caption}
+
+\usepackage{fancyhdr}
+\usepackage{ragged2e}
+\usepackage{microtype}
+
+
+\geometry{
+    left=3cm,
+    right=2cm,
+    top=3cm,
+    bottom=2cm
+}
+
+\onehalfspacing
+
+% Configuração dos parágrafos
+\setlength{\parindent}{0cm}
+\setlength{\parskip}{0.3cm}
+
+% Evita problemas com linhas muito longas
+\emergencystretch=3em
+\tolerance=2000
+\hyphenpenalty=5000
+\exhyphenpenalty=5000
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    citecolor=black,
+    urlcolor=blue,
+    pdftitle={UV Mapping Dinâmico e Procedural},
+    pdfauthor={Felipe Barbosa dos Santos et al.}
+}
+
+
+\pagestyle{fancy}
+
+\fancyhf{}
+
+\fancyhead[R]{UV Mapping Dinâmico e Procedural}
+
+\fancyfoot[C]{\thepage}
+
+
+\AtBeginDocument{
+    \justifying
+}
+
+
+\newcommand{\placeholder}[2][5cm]{%
+    \begin{figure}[H]
+        \centering
+        \fbox{
+            \parbox[c][#1][c]{0.82\textwidth}{
+                \centering
+                #2
+            }
+        }
+    \end{figure}
+}
+
+
+\begin{document}
+
+
+\begin{titlepage}
+
+    \centering
+
+    \vspace*{1.5cm}
+
+    {\Large \textbf{UNIVERSIDADE CATÓLICA DE SANTOS}\par}
+
+    \vspace{0.5cm}
+
+    {\large Ciência da Computação\par}
+
+    \vspace{2.5cm}
+
+    {\LARGE \textbf{UV MAPPING DINÂMICO E PROCEDURAL}\par}
+
+    \vspace{1.5cm}
+
+    {\large Computação Gráfica e Processamento de Imagens\par}
+
+    \vfill
+
+    \begin{flushleft}
+
+    \textbf{Integrantes:}\\[0.2cm]
+
+    Arthur Almeida Lima - 3093901\\
+    Felipe Barbosa dos Santos - 4324223\\
+    João Gabriel Henriques Cardoso - 6100450\\
+    Lucas Carmona Neto - 8342055\\
+    Lucas Cerqueira Galvão - 4477944\\
+
+    \end{flushleft}
+
+    \vfill
+
+    {\large
+    Santos -- SP\\
+    2026
+    \par}
+
+\end{titlepage}
+
+\tableofcontents
+
+\clearpage
+
+
+\chapter{Introdução}
+
+\input{capitulos/introducao}
+
+
+\chapter{Fundamentação teórica}
+
+\input{capitulos/fundamentacao}
+
+
+\chapter{Equações e funcionamento matemático}
+
+\input{capitulos/equacoes}
+
+
+\chapter{Relação com Vulkan}
+
+\input{capitulos/vulkan}
+
+
+\chapter{Arquitetura do Pipeline Vulkan}
+
+\input{capitulos/arquitetura_vulkan}
+
+\chapter{Pseudocódigo dos Shaders}
+
+\input{capitulos/shaders}
+
+\chapter{Aplicações práticas}
+
+\input{capitulos/aplicacoes}
+
+
+\chapter{Utilização em jogos}
+
+\input{capitulos/jogos}
+
+\chapter{Capturas de gameplay}
+
+\input{capitulos/capturas}
+
+
+\chapter{Vídeos de demonstração}
+
+\input{capitulos/videos}
+
+
+\chapter{Resumo das publicações utilizadas}
+
+\input{capitulos/resumos_artigos}
+
+
+\chapter{Conclusão}
+
+\input{capitulos/conclusao}
+
+
+\begin{thebibliography}{99}
+
+\bibitem{heckbert1986}
+
+HECKBERT, P. S.
+
+\textit{Survey of Texture Mapping}.
+
+IEEE Computer Graphics and Applications, v. 6, n. 11, p. 56--67, 1986.
+
+DOI:
+\url{https://doi.org/10.1109/MCG.1986.276672}.
+
+\bibitem{dong2020}
+
+DONG, J.; LIU, J.; YAO, K.; CHANTLER, M.; QI, L.; YU, H.; JIAN, M.
+
+\textit{Survey of Procedural Methods for Two-Dimensional Texture Generation}.
+
+Sensors, v. 20, n. 4, 1135, 2020.
+
+DOI:
+\url{https://doi.org/10.3390/s20041135}.
+
+\bibitem{smelik2014}
+
+SMELIK, R. M.; TUTENEL, T.; BIDARRA, R.; BENES, B.
+
+\textit{A Survey on Procedural Modelling for Virtual Worlds}.
+
+Computer Graphics Forum, v. 33, n. 6, p. 31--50, 2014.
+
+DOI:
+\url{https://doi.org/10.1111/cgf.12276}.
+
+\bibitem{ebert2002}
+
+EBERT, D. S. et al.
+
+\textit{Texturing and Modeling: A Procedural Approach}.
+
+3. ed. San Francisco: Morgan Kaufmann, 2002.
+
+\bibitem{vulkan}
+
+KHRONOS GROUP.
+
+\textit{Vulkan Documentation: Image View and Sampler}.
+
+Disponível em:
+\url{https://docs.vulkan.org/tutorial/latest/06_Texture_mapping/01_Image_view_and_sampler.html}.
+
+Acesso em: 2026.
+
+\bibitem{substance}
+
+SUBSTANCE 3D.
+
+\textit{Between Modeling and Texturing: Substance Designer in Rocket League}.
+
+Disponível em:
+\url{https://substance3d.adobe.com/}.
+
+Acesso em: 2026.
+
+\bibitem{insomniac}
+
+INSOMNIAC GAMES.
+
+\textit{What is different in Marvel's Spider-Man Remastered from the original game?}.
+
+2025.
+
+\end{thebibliography}
+
+\appendix
+
+\chapter{Checklist da entrega}
+
+\begin{itemize}
+
+    \item[$\square$] PDF final compilado.
+
+    \item[$\square$] Arquivos \LaTeX{}.
+
+    \item[$\square$] Pelo menos três publicações científicas/técnicas.
+
+    \item[$\square$] Um resumo de cada publicação.
+
+    \item[$\square$] Pelo menos duas aplicações práticas.
+
+    \item[$\square$] Pelo menos dois jogos.
+
+    \item[$\square$] Uma captura própria para cada jogo.
+
+    \item[$\square$] Vídeo de demonstração quando a captura não for suficiente.
+
+    \item[$\square$] Artigos consultados incluídos no ZIP.
+
+    \item[$\square$] Diagrama da arquitetura do pipeline Vulkan.
+
+    \item[$\square$] Arquivo-fonte do diagrama incluído no projeto.
+
+    \item[$\square$] Explicação dos Render Passes e Subpasses.
+
+    \item[$\square$] Descrição dos Descriptor Sets e Bindings.
+
+    \item[$\square$] Descrição dos buffers e suas finalidades.
+
+    \item[$\square$] Descrição dos shaders envolvidos.
+
+    \item[$\square$] Barreiras de memória e sincronizações.
+
+    \item[$\square$] Transições de Image Layout.
+
+    \item[$\square$] Dependências de execução.
+
+\end{itemize}
+
+\end{document}

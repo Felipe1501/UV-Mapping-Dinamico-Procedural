@@ -1,0 +1,114 @@
+\section{Coordenadas UV}
+
+As coordenadas básicas são representadas por:
+
+\begin{equation}
+(u,v), \qquad 0\leq u\leq1,\quad 0\leq v\leq1.
+\end{equation}
+
+\(u\) representa a posição horizontal da textura e \(v\) representa a posição vertical. Os valores normalizados permitem acessar a textura independentemente de sua resolução.
+
+\section{Translação}
+
+A translação das coordenadas é dada por:
+
+\begin{equation}
+u'=u+\Delta u,\qquad v'=v+\Delta v.
+\end{equation}
+
+Os termos \(\Delta u\) e \(\Delta v\) determinam o deslocamento. Se o deslocamento for atualizado com o tempo, a textura pode aparentar movimento.
+
+Uma forma simples é:
+
+\begin{equation}
+u'=u+s_ut,\qquad v'=v+s_vt,
+\end{equation}
+
+em que \(s_u\) e \(s_v\) representam velocidades de deslocamento.
+
+\section{Escala}
+
+A escala pode ser definida por:
+
+\begin{equation}
+u'=s_u u,\qquad v'=s_v v.
+\end{equation}
+
+Valores maiores que \(1\) aumentam a frequência aparente da textura, enquanto valores menores reduzem sua frequência.
+
+\section{Rotação}
+
+Considerando uma rotação em torno da origem do espaço UV:
+
+\begin{equation}
+u'=u\cos\theta-v\sin\theta,
+\end{equation}
+
+\begin{equation}
+v'=u\sin\theta+v\cos\theta.
+\end{equation}
+
+O parâmetro \(\theta\) representa o ângulo de rotação.
+
+\section{Transformação combinada}
+
+As operações podem ser representadas matricialmente:
+
+\begin{equation}
+P'=M P,
+\end{equation}
+
+onde \(P=(u,v)^T\) é o ponto original e \(M\) representa a transformação escolhida.
+
+\section{Interpolação}
+
+Para um triângulo, as coordenadas UV dos fragmentos podem ser obtidas por interpolação baricêntrica:
+
+\begin{equation}
+UV=\alpha UV_0+\beta UV_1+\gamma UV_2,
+\end{equation}
+
+com:
+
+\begin{equation}
+\alpha+\beta+\gamma=1.
+\end{equation}
+
+Assim, os atributos dos vértices são utilizados para obter valores correspondentes em cada fragmento.
+
+\section{Mapeamento procedural}
+
+Uma formulação geral é:
+
+\begin{equation}
+UV'=f(P,t),
+\end{equation}
+
+ou, quando o objetivo é produzir diretamente a cor:
+
+\begin{equation}
+C=f(P,t).
+\end{equation}
+
+Essas expressões representam a ideia de que o resultado pode ser calculado a partir da posição espacial e, opcionalmente, do tempo.
+
+\section{Relação com o pipeline}
+
+O fluxo conceitual pode ser resumido como:
+
+\begin{center}
+\begin{tabular}{c}
+\textit{Coordenadas UV}
+$\rightarrow$
+\textit{Transformação}
+$\rightarrow$
+\textit{Interpolação}
+\\[0.2cm]
+$\rightarrow$
+\textit{Fragment Shader}
+$\rightarrow$
+\textit{Sampling}
+$\rightarrow$
+\textit{Cor final}
+\end{tabular}
+\end{center}

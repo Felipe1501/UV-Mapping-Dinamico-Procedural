@@ -1,0 +1,360 @@
+digraph VulkanPipeline {
+
+    graph [
+        rankdir=LR,
+        splines=ortho,
+        nodesep=0.55,
+        ranksep=0.9,
+        pad=0.3,
+        bgcolor="white",
+        fontname="Arial",
+        label="Arquitetura do Pipeline Vulkan — UV Mapping Dinâmico e Procedural",
+        labelloc="t",
+        fontsize=20
+    ];
+
+    node [
+        shape=box,
+        style="rounded,filled",
+        fontname="Arial",
+        fontsize=10,
+        margin="0.12,0.08"
+    ];
+
+    edge [
+        fontname="Arial",
+        fontsize=8,
+        color="#333333",
+        arrowsize=0.7
+    ];
+
+
+    subgraph cluster_cpu {
+        label="Aplicação / CPU";
+        color="#777777";
+        style="rounded,dashed";
+        fontsize=13;
+
+        cpu [
+            label="Aplicação\nAtualização de parâmetros",
+            fillcolor="#D9EAF7"
+        ];
+
+        vertex_buffer [
+            label="Vertex Buffer\n\nposição\nnormal\nUV (u,v)",
+            fillcolor="#D9EAF7"
+        ];
+
+        index_buffer [
+            label="Index Buffer\n\níndices dos vértices",
+            fillcolor="#D9EAF7"
+        ];
+
+        uniform_buffer [
+            label="Uniform Buffer (UBO)\n\nmatriz/transformação\nUV dinâmica\ntempo\nvelocidade\nescala/parâmetros",
+            fillcolor="#D9EAF7"
+        ];
+    }
+
+
+
+    subgraph cluster_descriptors {
+        label="Descriptor Set 0";
+        color="#777777";
+        style="rounded,dashed";
+        fontsize=13;
+
+        descriptors [
+            label="Descriptor Set 0\n\nBinding 0 → Uniform Buffer\nBinding 1 → Image View\nBinding 2 → Sampler",
+            fillcolor="#E4D9F7"
+        ];
+    }
+
+
+    // =====================================================
+    // RECURSOS DE TEXTURA
+    // =====================================================
+
+    subgraph cluster_texture {
+        label="Recursos de Textura";
+        color="#777777";
+        style="rounded,dashed";
+        fontsize=13;
+
+        image [
+            label="Texture Image\n\nImagem da textura",
+            fillcolor="#D9EAF7"
+        ];
+
+        image_view [
+            label="Image View\n\nVisão da imagem",
+            fillcolor="#D9EAF7"
+        ];
+
+        sampler [
+            label="Sampler\n\nfiltragem\nendereçamento\nmipmapping",
+            fillcolor="#D9EAF7"
+        ];
+    }
+
+
+    subgraph cluster_sync {
+        label="Sincronização e Image Layouts";
+        color="#C47A00";
+        style="rounded,dashed";
+        fontsize=13;
+
+        barrier_upload [
+            label="Image Memory Barrier\n\nTRANSFER → FRAGMENT SHADER\n\nTRANSFER_DST_OPTIMAL\n↓\nSHADER_READ_ONLY_OPTIMAL",
+            fillcolor="#F9E2B8",
+            color="#C47A00"
+        ];
+
+        barrier_ubo [
+            label="Sincronização UBO\n\nHOST WRITE\n↓\nSHADER READ\n\nGarante que os parâmetros\natualizados estejam disponíveis",
+            fillcolor="#F9E2B8",
+            color="#C47A00"
+        ];
+    }
+
+
+    subgraph cluster_pipeline {
+        label="Graphics Pipeline";
+        color="#4C8C4A";
+        style="rounded,dashed";
+        fontsize=13;
+
+        vertex_input [
+            label="Vertex Input\n\nVertex Buffer\n+\nIndex Buffer",
+            fillcolor="#DCEFD8"
+        ];
+
+        vertex_shader [
+            label="Vertex Shader\n\nprocessa posição\nrecebe UV\naplica transformações\nnecessárias",
+            fillcolor="#CDE8C9"
+        ];
+
+        rasterization [
+            label="Rasterização\n\nPrimitivas → Fragmentos",
+            fillcolor="#CDE8C9"
+        ];
+
+        interpolation [
+            label="Interpolação\n\nUV dos vértices\n→ UV por fragmento",
+            fillcolor="#CDE8C9"
+        ];
+
+        fragment_shader [
+            label="Fragment Shader\n\nUV dinâmico\n+\nfunção procedural\n+\nsampling da textura",
+            fillcolor="#BFE0BA"
+        ];
+    }
+
+
+
+    subgraph cluster_renderpass {
+        label="Render Pass";
+        color="#7A4E9A";
+        style="rounded,dashed";
+        fontsize=13;
+
+        subpass [
+            label="Subpass 0\n\nRenderização da superfície",
+            fillcolor="#E8D9F0"
+        ];
+
+        color_attachment [
+            label="Color Attachment\n\nImagem de saída\ncor final",
+            fillcolor="#E8D9F0"
+        ];
+
+        depth_attachment [
+            label="Depth Attachment\n\nProfundidade da cena",
+            fillcolor="#E8D9F0"
+        ];
+
+        framebuffer [
+            label="Framebuffer\n\nColor + Depth",
+            fillcolor="#DCC8E8"
+        ];
+    }
+
+
+
+    cpu -> vertex_buffer [
+        label="dados da malha"
+    ];
+
+    cpu -> index_buffer [
+        label="índices"
+    ];
+
+    cpu -> uniform_buffer [
+        label="parâmetros / tempo"
+    ];
+
+    vertex_buffer -> vertex_input [
+        label="Vertex Input"
+    ];
+
+    index_buffer -> vertex_input [
+        label="índices"
+    ];
+
+    uniform_buffer -> descriptors [
+        label="Binding 0"
+    ];
+
+    image_view -> descriptors [
+        label="Binding 1"
+    ];
+
+    sampler -> descriptors [
+        label="Binding 2"
+    ];
+
+    descriptors -> vertex_shader [
+        label="recursos disponíveis"
+    ];
+
+    descriptors -> fragment_shader [
+        label="recursos disponíveis"
+    ];
+
+    vertex_input -> vertex_shader [
+        label="atributos dos vértices"
+    ];
+
+    vertex_shader -> rasterization [
+        label="posição transformada + UV"
+    ];
+
+    rasterization -> interpolation [
+        label="fragmentos"
+    ];
+
+    interpolation -> fragment_shader [
+        label="UV interpolada"
+    ];
+
+    fragment_shader -> subpass [
+        label="cor calculada"
+    ];
+
+    subpass -> color_attachment [
+        label="resultado"
+    ];
+
+    subpass -> depth_attachment [
+        label="profundidade"
+    ];
+
+    color_attachment -> framebuffer [
+        label="Color"
+    ];
+
+    depth_attachment -> framebuffer [
+        label="Depth"
+    ];
+
+
+
+    image -> barrier_upload [
+        label="upload / transferência"
+    ];
+
+    barrier_upload -> image_view [
+        label="imagem pronta\npara shader"
+    ];
+
+    sampler -> fragment_shader [
+        label="amostragem"
+    ];
+
+    image_view -> fragment_shader [
+        label="textura"
+    ];
+
+
+    cpu -> barrier_ubo [
+        label="atualização"
+    ];
+
+    barrier_ubo -> uniform_buffer [
+        label="UBO disponível"
+    ];
+
+    barrier_upload -> fragment_shader [
+        label="dependência de memória"
+    ];
+
+
+    dynamic_uv [
+        label="UV Mapping Dinâmico\n\nUV' = UV + deslocamento(t)\n\nmovimento / escala / rotação",
+        fillcolor="#FFF2CC",
+        color="#B7950B"
+    ];
+
+    procedural_uv [
+        label="Mapeamento Procedural\n\nC = f(UV, P, t)\n\npadrão calculado\nmatematicamente",
+        fillcolor="#FFF2CC",
+        color="#B7950B"
+    ];
+
+    uniform_buffer -> dynamic_uv [
+        label="tempo / velocidade"
+    ];
+
+    interpolation -> dynamic_uv [
+        label="UV"
+    ];
+
+    dynamic_uv -> fragment_shader [
+        label="UV modificada"
+    ];
+
+    interpolation -> procedural_uv [
+        label="UV / posição"
+    ];
+
+    uniform_buffer -> procedural_uv [
+        label="parâmetros"
+    ];
+
+    procedural_uv -> fragment_shader [
+        label="resultado procedural"
+    ];
+
+
+    subgraph cluster_legend {
+        label="Legenda";
+        color="#777777";
+        style="rounded,dashed";
+        fontsize=13;
+
+        legend_data [
+            label="Azul\nRecursos e dados",
+            fillcolor="#D9EAF7"
+        ];
+
+        legend_shader [
+            label="Verde\nProcessamento / Shaders",
+            fillcolor="#CDE8C9"
+        ];
+
+        legend_sync [
+            label="Laranja\nSincronização / Barreiras",
+            fillcolor="#F9E2B8"
+        ];
+
+        legend_render [
+            label="Roxo\nRender Pass / Attachments",
+            fillcolor="#E8D9F0"
+        ];
+
+        legend_uv [
+            label="Amarelo\nOperações específicas de UV Mapping",
+            fillcolor="#FFF2CC"
+        ];
+    }
+}

@@ -1,0 +1,52 @@
+
+\section{UV Mapping tradicional}
+
+O UV mapping estabelece uma correspondência entre a superfície de um objeto tridimensional e uma imagem bidimensional. As coordenadas \(U\) e \(V\) normalmente são normalizadas no intervalo \([0,1]\). Dessa maneira, um vértice do modelo pode carregar, além de sua posição e outros atributos, uma coordenada que indica qual região da textura deve ser associada àquele ponto.
+
+No pipeline de renderização, as coordenadas dos vértices são fornecidas ao estágio de vértice e, durante a rasterização, são interpoladas para os fragmentos. O fragment shader pode então utilizar as coordenadas interpoladas para consultar uma textura por meio de um sampler.
+
+Heckbert \cite{heckbert1986} destaca dois aspectos centrais do texture mapping: o mapeamento geométrico, responsável por relacionar a textura à superfície, e a filtragem, necessária para reduzir artefatos como aliasing.
+
+\section{UV Mapping dinâmico}
+
+O UV mapping dinâmico consiste em modificar as coordenadas de textura durante a execução. Uma transformação simples é a translação:
+
+\[
+u'=u+\Delta u,\qquad v'=v+\Delta v.
+\]
+
+Se \(\Delta u\) ou \(\Delta v\) variarem com o tempo, a textura pode apresentar movimento contínuo. Esse mecanismo pode ser empregado para representar, por exemplo, o deslocamento visual de água, energia, lava ou elementos de interface.
+
+Também podem ser aplicadas escala e rotação. A combinação dessas operações permite controlar a velocidade, direção, repetição e orientação de uma textura sem modificar a malha original.
+
+\section{Mapeamento procedural}
+
+No mapeamento procedural, o resultado é produzido por uma função ou procedimento. Dong et al. \cite{dong2020} definem a geração procedural de texturas como o processo de criação de texturas por meio de modelos matemáticos e apresentam uma revisão de diferentes métodos para geração de texturas bidimensionais.
+
+Uma formulação simplificada pode ser escrita como:
+
+\[
+C=f(P,t),
+\]
+
+em que \(P\) representa uma posição espacial, \(t\) representa uma variável temporal quando necessário e \(f\) representa a função procedural responsável pelo resultado.
+
+A abordagem procedural é útil quando se deseja gerar padrões repetitivos, variações ou materiais sem armazenar uma imagem diferente para cada situação. Ela também pode ser combinada com UV coordinates tradicionais.
+
+\section{Vantagens}
+
+Entre as principais vantagens estão a flexibilidade, a possibilidade de animação em tempo real, o reaproveitamento de texturas e a geração de variações sem necessidade de armazenar todos os resultados previamente.
+
+Métodos procedurais também podem reduzir a quantidade de dados necessários para representar determinados tipos de conteúdo. Smelik et al. \cite{smelik2014} destacam que métodos procedurais são atrativos para a geração de grandes quantidades de conteúdo em ambientes virtuais, embora o controle artístico e a interatividade continuem sendo desafios importantes.
+
+\section{Limitações}
+
+A técnica não elimina os problemas tradicionais de mapeamento. Podem ocorrer distorções, descontinuidades, repetição excessiva de padrões e artefatos de filtragem. No caso procedural, funções muito complexas também podem aumentar o custo computacional.
+
+Outro ponto é o controle artístico: uma função procedural pode gerar grande variedade, mas é necessário definir parâmetros que permitam ao artista controlar o resultado desejado.
+
+\section{Custo computacional}
+
+O custo depende principalmente da quantidade de cálculos executados por fragmento, do número de amostragens de textura, dos filtros utilizados e da resolução envolvida. Operações realizadas no fragment shader podem ser executadas muitas vezes, pois um mesmo shader pode processar grande quantidade de fragmentos.
+
+Por isso, uma implementação eficiente deve avaliar quais cálculos realmente precisam ser feitos por fragmento e quais podem ser antecipados ou simplificados.

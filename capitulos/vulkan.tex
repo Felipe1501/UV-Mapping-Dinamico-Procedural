@@ -1,0 +1,71 @@
+\section{Visão geral}
+
+Vulkan é uma API gráfica de baixo nível que fornece maior controle explícito sobre recursos e etapas da renderização. Para o mapeamento de texturas, são especialmente importantes os buffers, imagens, image views, samplers, shaders e o pipeline gráfico.
+
+\section{Shaders}
+
+As coordenadas UV podem ser armazenadas como atributos dos vértices. O vertex shader recebe esses atributos e os encaminha para o estágio seguinte. Após a rasterização, as coordenadas são interpoladas e disponibilizadas ao fragment shader.
+
+Uma transformação dinâmica simples pode ser implementada conceitualmente como:
+
+\begin{equation}
+u'=u+v_t t,
+\end{equation}
+
+onde \(v_t\) representa uma velocidade e \(t\) o tempo.
+
+Para uma aplicação procedural, o shader pode calcular um valor a partir das coordenadas e de outras entradas:
+
+\begin{equation}
+C=f(UV,P,t).
+\end{equation}
+
+\section{Buffers}
+
+Um vertex buffer pode armazenar posição, normal e coordenadas UV. Dados que mudam durante a execução, como tempo, velocidade de animação ou escala, podem ser enviados por meio de buffers de uniformes.
+
+\section{Imagens, image views e samplers}
+
+No Vulkan, a imagem de textura é um recurso distinto de sua image view e do sampler. A documentação do Vulkan explica que shaders normalmente acessam texturas por meio de samplers, que aplicam operações de filtragem durante a leitura dos texels \cite{vulkan}.
+
+O sampler também participa de decisões como filtragem e comportamento de endereçamento. Esses mecanismos são importantes para evitar resultados visuais inadequados quando uma textura é ampliada ou reduzida.
+
+\section{Pipeline gráfico}
+
+O fluxo simplificado pode ser representado por:
+
+\begin{center}
+\begin{tabular}{c}
+\textit{Vertex Buffer}
+$\rightarrow$
+\textit{Vertex Shader}
+$\rightarrow$
+\textit{Rasterização}
+\\[0.2cm]
+$\rightarrow$
+\textit{Interpolação UV}
+$\rightarrow$
+\textit{Fragment Shader}
+$\rightarrow$
+\textit{Sampler + Image}
+\\[0.2cm]
+$\rightarrow$
+\textit{Framebuffer/Attachment}
+\end{tabular}
+\end{center}
+
+No caso do UV mapping dinâmico, a transformação pode ser realizada antes da consulta à textura. No caso procedural, o shader pode calcular diretamente os valores necessários para produzir o padrão ou modificar as coordenadas.
+
+\section{Implementação dinâmica}
+
+Uma implementação dinâmica pode utilizar um parâmetro de tempo atualizado pela aplicação. O shader recebe esse parâmetro e aplica a transformação às coordenadas UV. Dessa forma, a mesma textura pode ser reutilizada com diferentes velocidades, direções ou escalas.
+
+\section{Implementação procedural}
+
+Na abordagem procedural, a aplicação pode fornecer parâmetros como tempo, posição e escala, enquanto o shader calcula o padrão. Uma função periódica, por exemplo, pode produzir variações que se deslocam ao longo da superfície.
+
+\section{Otimização}
+
+A otimização deve considerar que cálculos no fragment shader podem ser executados para grande quantidade de fragmentos. Operações desnecessárias devem ser reduzidas, e os parâmetros devem ser organizados para evitar transferências excessivas.
+
+Também é importante utilizar adequadamente filtragem e mipmapping quando o conteúdo for armazenado em texturas, pois a escolha do método de amostragem influencia a qualidade e o custo da renderização.

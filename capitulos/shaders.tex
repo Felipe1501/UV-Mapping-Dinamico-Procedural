@@ -1,0 +1,493 @@
+\section{Objetivo dos shaders}
+
+Os shaders apresentados nesta etapa descrevem a lógica necessária para
+implementar o efeito de UV Mapping Dinâmico e Procedural em uma arquitetura
+gráfica baseada em Vulkan. O pseudocódigo utiliza uma sintaxe semelhante à
+linguagem GLSL, porém não tem como objetivo ser compilado diretamente.
+
+Foram utilizados dois shaders principais: um Vertex Shader, responsável pelo
+processamento dos vértices e pela preparação das coordenadas UV, e um
+Fragment Shader, responsável pela aplicação do deslocamento dinâmico, pela
+amostragem da textura, pelo cálculo procedural e pela produção da cor final.
+
+O fluxo geral pode ser representado por:
+
+\begin{center}
+\begin{tabular}{c}
+\textit{Vertex Buffer}
+$\rightarrow$
+\textit{Vertex Shader}
+\\[0.2cm]
+$\rightarrow$
+\textit{Rasterização e Interpolação}
+$\rightarrow$
+\textit{Fragment Shader}
+\\[0.2cm]
+$\rightarrow$
+\textit{Color Attachment}
+$\rightarrow$
+\textit{Framebuffer}
+\end{tabular}
+\end{center}
+
+
+\section{Vertex Shader}
+
+O Vertex Shader recebe os atributos associados aos vértices da malha. São
+utilizados a posição, a normal e as coordenadas UV. O shader também recebe
+por meio de um Uniform Buffer os parâmetros necessários para a transformação
+geométrica e para o comportamento dinâmico das coordenadas de textura.
+
+Os principais dados utilizados são:
+
+\begin{itemize}
+    \item \textbf{inPosition}: posição do vértice no espaço do modelo;
+    \item \textbf{inNormal}: vetor normal associado ao vértice;
+    \item \textbf{inUV}: coordenadas de textura do vértice;
+    \item \textbf{model}: matriz de transformação do espaço do modelo para o
+    espaço de mundo;
+    \item \textbf{view}: matriz de transformação para o espaço de visualização;
+    \item \textbf{projection}: matriz de projeção;
+    \item \textbf{time}: tempo utilizado para produzir o movimento da textura;
+    \item \textbf{uvVelocity}: velocidade de deslocamento das coordenadas UV;
+    \item \textbf{uvScale}: escala aplicada às coordenadas UV.
+\end{itemize}
+
+\subsection{Transformação da posição}
+
+A posição do vértice é transformada pelas matrizes Model, View e Projection.
+De forma simplificada:
+
+\begin{equation}
+P_{world}=M_{model}P_{local},
+\end{equation}
+
+\begin{equation}
+P_{view}=M_{view}P_{world},
+\end{equation}
+
+\begin{equation}
+P_{clip}=M_{projection}P_{view}.
+\end{equation}
+
+O resultado é utilizado para determinar a posição do vértice na tela.
+
+\subsection{Escala das coordenadas UV}
+
+A escala permite controlar a repetição da textura na superfície. A operação
+é representada por:
+
+\begin{equation}
+UV_{scale}=UV\cdot S,
+\end{equation}
+
+em que $UV$ representa a coordenada original e $S$ representa o fator de
+escala.
+
+\subsection{Deslocamento temporal}
+
+O deslocamento dinâmico utiliza o tempo de execução e uma velocidade definida
+pela aplicação:
+
+\begin{equation}
+UV_{offset}=Vt,
+\end{equation}
+
+em que $V$ representa a velocidade de deslocamento e $t$ representa o tempo.
+
+A coordenada enviada para o próximo estágio é então:
+
+\begin{equation}
+UV'=UV_{scale}+UV_{offset}.
+\end{equation}
+
+Essa operação permite produzir movimento contínuo da textura sem modificar
+a geometria da malha.
+
+\section{Pseudocódigo do Vertex Shader}
+
+O arquivo \texttt{uv\_mapping.vert} contém o pseudocódigo correspondente ao
+Vertex Shader:
+
+\begin{verbatim}
+
+layout(location = 0) in vec3 inPosition;
+layout(location = 1) in vec3 inNormal;
+layout(location = 2) in vec2 inUV;
+
+layout(set = 0, binding = 0) uniform Parameters
+{
+    mat4 model;
+    mat4 view;
+    mat4 projection;
+
+    float time;
+    vec2 uvVelocity;
+    vec2 uvScale;
+} params;
+
+layout(location = 0) out vec2 fragUV;
+layout(location = 1) out vec3 fragNormal;
+layout(location = 2) out vec3 fragPosition;
+
+void main()
+{
+    vec4 worldPosition =
+        params.model * vec4(inPosition, 1.0);
+
+    vec4 viewPosition =
+        params.view * worldPosition;
+
+    gl_Position =
+        params.projection * viewPosition;
+
+    fragPosition = worldPosition.xyz;
+    fragNormal = inNormal;
+
+    vec2 scaledUV =
+        inUV * params.uvScale;
+
+    vec2 uvOffset =
+        params.uvVelocity * params.time;
+
+    fragUV =
+        scaledUV + uvOffset;
+}
+\end{verbatim}
+
+
+\section{Rasterização e interpolação}
+
+Após a execução do Vertex Shader, as primitivas são submetidas à
+rasterização. Durante esse processo, os atributos enviados pelos vértices
+são interpolados para os fragmentos.
+
+Para um triângulo, a interpolação das coordenadas UV pode ser representada
+por:
+
+\begin{equation}
+UV=\alpha UV_0+\beta UV_1+\gamma UV_2,
+\end{equation}
+
+com:
+
+\begin{equation}
+\alpha+\beta+\gamma=1.
+\end{equation}
+
+O resultado dessa interpolação é recebido pelo Fragment Shader como
+\texttt{fragUV}.
+
+
+\section{Fragment Shader}
+
+O Fragment Shader é responsável pela etapa principal do efeito visual. Ele
+recebe as coordenadas UV interpoladas, a normal e a posição do fragmento.
+
+Também recebe os mesmos parâmetros temporais utilizados no Vertex Shader,
+além dos recursos de textura.
+
+Os principais recursos utilizados são:
+
+\begin{itemize}
+    \item \textbf{fragUV}: coordenada UV interpolada;
+    \item \textbf{fragNormal}: normal interpolada;
+    \item \textbf{fragPosition}: posição do fragmento;
+    \item \textbf{time}: tempo da animação;
+    \item \textbf{textureImage}: imagem contendo a textura;
+    \item \textbf{textureSampler}: sampler utilizado para realizar a leitura;
+    \item \textbf{outColor}: cor final produzida pelo shader.
+\end{itemize}
+
+
+\section{Amostragem da textura}
+
+A textura é acessada utilizando as coordenadas UV resultantes. Como o efeito
+dinâmico pode deslocar a coordenada para fora do intervalo $[0,1]$, o
+endereçamento pode utilizar repetição.
+
+No pseudocódigo, a operação:
+
+\begin{equation}
+UV_{sample}=fract(UV)
+\end{equation}
+
+mantém a coordenada no intervalo $[0,1)$ para representar o comportamento
+de repetição.
+
+A leitura da textura é realizada conceitualmente por:
+
+\begin{equation}
+C_{texture}=Texture(UV_{sample}).
+\end{equation}
+
+O Sampler define características da leitura, incluindo filtragem e
+endereçamento. Quando mipmaps são utilizados, o nível apropriado pode ser
+selecionado de acordo com a resolução aparente da textura durante a
+renderização.
+
+
+\section{Função procedural}
+
+Além da textura, o Fragment Shader utiliza uma função matemática para
+produzir uma variação procedural.
+
+Neste pseudocódigo é utilizada uma função seno:
+
+\begin{equation}
+W=\sin(10U+10V+2t).
+\end{equation}
+
+O resultado da função seno pertence ao intervalo $[-1,1]$. Para convertê-lo
+para o intervalo $[0,1]$, é aplicada a transformação:
+
+\begin{equation}
+W_{normalizado}=\frac{W+1}{2}.
+\end{equation}
+
+O valor resultante pode ser utilizado como intensidade para produzir uma
+variação visual sobre a textura.
+
+
+\section{Normalização e iluminação}
+
+A normal recebida pelo Fragment Shader é normalizada antes de participar dos
+cálculos de iluminação:
+
+\begin{equation}
+N=\frac{N}{\|N\|}.
+\end{equation}
+
+Uma direção de luz também é normalizada. O fator de iluminação é obtido pelo
+produto escalar:
+
+\begin{equation}
+L=\max(0,N\cdot D),
+\end{equation}
+
+em que $N$ representa a normal normalizada e $D$ representa a direção da luz.
+
+O uso de $\max$ evita valores negativos quando a superfície estiver voltada
+para o lado oposto da fonte de iluminação.
+
+
+\section{Combinação dos resultados}
+
+O resultado procedural é convertido em uma cor:
+
+\begin{equation}
+C_{procedural}=
+(W,W,W).
+\end{equation}
+
+A textura original e o resultado procedural são então combinados por meio
+de uma interpolação:
+
+\begin{equation}
+C_{mix}=
+(1-a)C_{texture}+aC_{procedural},
+\end{equation}
+
+em que $a$ representa o fator de mistura.
+
+No pseudocódigo utilizado, $a=0.5$, permitindo combinar igualmente os dois
+resultados.
+
+
+\section{Tratamento de limites}
+
+Antes de produzir a cor final, os componentes são limitados ao intervalo
+$[0,1]$:
+
+\begin{equation}
+C_{final}=\operatorname{clamp}(C_{mix}L,0,1).
+\end{equation}
+
+Esse tratamento evita valores de cor fora do intervalo esperado.
+
+O uso de \texttt{fract} nas coordenadas também impede que valores
+excessivamente deslocados sejam enviados diretamente para a amostragem,
+mantendo o comportamento de repetição da textura.
+
+
+\section{Pseudocódigo do Fragment Shader}
+
+O arquivo \texttt{uv\_mapping.frag} contém o pseudocódigo correspondente ao
+Fragment Shader:
+
+\begin{verbatim}
+
+layout(location = 0) in vec2 fragUV;
+layout(location = 1) in vec3 fragNormal;
+layout(location = 2) in vec3 fragPosition;
+
+layout(location = 0) out vec4 outColor;
+
+layout(set = 0, binding = 0) uniform Parameters
+{
+    mat4 model;
+    mat4 view;
+    mat4 projection;
+
+    float time;
+    vec2 uvVelocity;
+    vec2 uvScale;
+} params;
+
+layout(set = 0, binding = 1) uniform texture2D textureImage;
+layout(set = 0, binding = 2) uniform sampler textureSampler;
+
+
+float proceduralPattern(vec2 uv, float time)
+{
+    float wave =
+        sin(
+            uv.x * 10.0
+            + uv.y * 10.0
+            + time * 2.0
+        );
+
+    float normalizedWave =
+        (wave + 1.0) * 0.5;
+
+    return normalizedWave;
+}
+
+
+void main()
+{
+    vec2 uv = fragUV;
+
+    vec2 sampledUV =
+        fract(uv);
+
+    vec4 textureColor =
+        texture(
+            sampler2D(textureImage, textureSampler),
+            sampledUV
+        );
+
+    float proceduralValue =
+        proceduralPattern(
+            sampledUV,
+            params.time
+        );
+
+    vec3 normal =
+        normalize(fragNormal);
+
+    vec3 lightDirection =
+        normalize(vec3(0.4, 0.8, 0.6));
+
+    float lightFactor =
+        max(
+            dot(normal, lightDirection),
+            0.0
+        );
+
+    vec3 proceduralColor =
+        vec3(
+            proceduralValue,
+            proceduralValue,
+            proceduralValue
+        );
+
+    vec3 finalColor =
+        mix(
+            textureColor.rgb,
+            proceduralColor,
+            0.5
+        );
+
+    finalColor =
+        finalColor * lightFactor;
+
+    finalColor =
+        clamp(
+            finalColor,
+            0.0,
+            1.0
+        );
+
+    outColor =
+        vec4(
+            finalColor,
+            textureColor.a
+        );
+}
+\end{verbatim}
+
+
+\section{Fluxo completo dos dados}
+
+O processamento completo pode ser resumido da seguinte forma:
+
+\begin{center}
+\begin{tabular}{c}
+\textit{Vertex Buffer}
+$\rightarrow$
+\textit{Vertex Shader}
+\\[0.15cm]
+$\downarrow$
+\\[0.15cm]
+\textit{Posição transformada + UV modificada}
+\\[0.15cm]
+$\rightarrow$
+\textit{Rasterização e Interpolação}
+\\[0.15cm]
+$\downarrow$
+\\[0.15cm]
+\textit{Fragment Shader}
+\\[0.15cm]
+$\downarrow$
+\\[0.15cm]
+\textit{Sampling + Função Procedural + Iluminação}
+\\[0.15cm]
+$\downarrow$
+\\[0.15cm]
+\textit{Cor Final}
+\\[0.15cm]
+$\rightarrow$
+\textit{Color Attachment}
+\end{tabular}
+\end{center}
+
+A aplicação fornece os dados geométricos e os parâmetros dinâmicos. O
+Vertex Shader transforma a geometria e prepara as coordenadas UV. A
+rasterização interpola esses atributos para os fragmentos. O Fragment Shader
+utiliza as coordenadas resultantes para acessar a textura e calcular a
+variação procedural.
+
+O resultado final é enviado ao Color Attachment do Render Pass, completando
+o fluxo de processamento.
+
+
+\section{Relação com o UV Mapping Dinâmico e Procedural}
+
+O pseudocódigo implementa as duas características centrais estudadas neste
+trabalho.
+
+No UV Mapping Dinâmico, a coordenada de textura é alterada de acordo com o
+tempo:
+
+\begin{equation}
+UV'=UV+Vt.
+\end{equation}
+
+Isso permite produzir movimento contínuo da textura sem modificar a malha.
+
+No Mapeamento Procedural, uma função matemática utiliza a coordenada UV e o
+tempo para produzir uma variação:
+
+\begin{equation}
+C=f(UV,t).
+\end{equation}
+
+A combinação dos dois mecanismos permite utilizar uma textura convencional
+como base e, simultaneamente, adicionar uma variação calculada durante a
+execução do shader.
+
+Dessa maneira, a lógica descrita nos arquivos \texttt{uv\_mapping.vert} e
+\texttt{uv\_mapping.frag} complementa a arquitetura Vulkan apresentada na
+Entrega 2 e descreve como o efeito pode ser implementado posteriormente em
+GLSL.
