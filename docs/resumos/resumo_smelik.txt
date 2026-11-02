@@ -1,3 +1,23 @@
 Resumo - Smelik et al. (2014)
 
-Smelik et al. revisam métodos de modelagem procedural para mundos virtuais, incluindo terrenos, vegetação, rios, estradas, edifícios e cidades. Os autores destacam vantagens como variedade e redução da intervenção manual, mas também discutem desafios de controle e interatividade. A publicação é utilizada para relacionar proceduralidade à geração de conteúdo em ambientes virtuais.
+Título: A Survey on Procedural Modelling for Virtual Worlds
+Autores: Ruben M. Smelik, Tim Tutenel, Rafael Bidarra, Bedrich Benes
+Ano: 2014 (Computer Graphics Forum, v. 33, n. 6, p. 31-50)
+DOI: https://doi.org/10.1111/cgf.12276
+Arquivo: artigos/Smelik et al (2014).pdf (versão do autor; as páginas abaixo são dessa versão)
+
+Objetivo:
+Revisar os métodos de modelagem procedural para mundos virtuais e entender por que eles ainda são pouco adotados por profissionais criativos (p. 1).
+
+Principais conceitos:
+- Amplificação de dados: poucos parâmetros geram grande variedade de conteúdo, inclusive sob demanda na GPU (p. 1).
+- Métodos organizados por tipo de conteúdo (terreno, vegetação, água, estradas, cidades, edifícios, interiores) e avaliados por facilidade de uso, controle e família de técnica (p. 2).
+- Sistemas comerciais: Terragen, SpeedTree, CityEngine, Houdini, entre outros (p. 10-12).
+- Obstáculos à adoção: falta de controle intuitivo e falta de integração entre métodos (p. 12-15); métodos frequentemente lentos para uso interativo (p. 14).
+
+Relação com o tema:
+Mostra o procedural em escala de mundo e o problema de controle que também afeta as texturas procedurais. O levantamento exclui a geração de texturas (p. 2), por isso é usado para o contexto de produção e para os produtos reais, e não para a texturização em si.
+
+Informações aproveitadas no relatório:
+- Amplificação de dados e custo da produção manual (quando usar); baixa controlabilidade e desempenho interativo (limitações e custo) (Fundamentação teórica).
+- SpeedTree, CityEngine, Houdini e Substance Designer como produtos reais (Aplicações práticas).

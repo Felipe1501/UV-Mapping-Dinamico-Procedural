@@ -1,3 +1,25 @@
 Resumo - Dong et al. (2020)
 
-Dong et al. fazem uma revisão dos métodos de geração procedural de texturas bidimensionais. O trabalho trata a geração procedural como a criação de texturas por modelos matemáticos e destaca sua utilidade para representar diferentes aparências de superfícies. A publicação fundamenta a parte do trabalho dedicada ao mapeamento e às texturas procedurais.
+Título: Survey of Procedural Methods for Two-Dimensional Texture Generation
+Autores: Junyu Dong, Jun Liu, Kang Yao, Mike Chantler, Lin Qi, Hui Yu, Muwei Jian
+Ano: 2020 (Sensors, v. 20, n. 4, 1135)
+DOI: https://doi.org/10.3390/s20041135
+Arquivo: artigos/Dong et al (2020).pdf
+
+Objetivo:
+Revisar e comparar, pela aparência que produzem, os métodos de geração procedural de texturas bidimensionais estáticas. Texturas sólidas, jogos e animação ficam explicitamente fora do escopo (p. 2).
+
+Principais conceitos:
+- Textura procedural: imagem criada por um modelo matemático (p. 1).
+- Vantagens: tamanho e resolução ilimitados, sem costuras nem repetição, famílias de texturas obtidas variando parâmetros (p. 2).
+- Classificação: métodos estruturados (autômatos celulares, reação-difusão, textons, Voronoi, texturas celulares), não estruturados (ruídos no domínio da frequência e no espacial, como Gabor e Perlin) e pós-processamento (p. 3-4).
+- Avaliação perceptual de 20 métodos com 450 amostras e 40 participantes (p. 19-20); tabela de aplicações típicas de cada método (p. 22).
+- Limitações: difícil prever e controlar o resultado dos parâmetros (p. 2, 23), aliasing do ruído de Perlin (p. 13), dificuldade de reproduzir uma textura real específica (p. 23).
+
+Relação com o tema:
+Fundamenta o lado procedural da técnica: o que é uma textura gerada por função, quando ela é vantajosa e quais são seus problemas.
+
+Informações aproveitadas no relatório:
+- Definição e taxonomia do procedural, critérios de quando usar e limitações (Fundamentação teórica).
+- Classificação dos nós procedurais do Blender (Aplicações práticas).
+- A ressalva de que o tempo relatado (menos de um segundo por imagem, em computador de mesa) mede a geração de uma imagem inteira, e não a avaliação por fragmento em tempo real (p. 21).

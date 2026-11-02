@@ -1,40 +1,159 @@
+% Referências do trabalho. Espelham a lista \thebibliography do main.tex.
+% As páginas citadas de heckbert1986 e smelik2014 são das versões dos
+% autores incluídas em artigos/.
+
 @article{heckbert1986,
-  author = {Heckbert, Paul S.},
-  title = {Survey of Texture Mapping},
+  author  = {Heckbert, Paul S.},
+  title   = {Survey of Texture Mapping},
   journal = {IEEE Computer Graphics and Applications},
-  volume = {6},
-  number = {11},
-  pages = {56--67},
-  year = {1986},
-  doi = {10.1109/MCG.1986.276672}
+  volume  = {6},
+  number  = {11},
+  pages   = {56--67},
+  year    = {1986},
+  doi     = {10.1109/MCG.1986.276672},
+  note    = {Páginas citadas referem-se à versão do autor em artigos/}
 }
 
 @article{dong2020,
-  author = {Dong, Junyu and Liu, Jun and Yao, Kang and Chantler, Mike and Qi, Lin and Yu, Hui and Jian, Muwei},
-  title = {Survey of Procedural Methods for Two-Dimensional Texture Generation},
+  author  = {Dong, Junyu and Liu, Jun and Yao, Kang and Chantler, Mike and Qi, Lin and Yu, Hui and Jian, Muwei},
+  title   = {Survey of Procedural Methods for Two-Dimensional Texture Generation},
   journal = {Sensors},
-  volume = {20},
-  number = {4},
-  pages = {1135},
-  year = {2020},
-  doi = {10.3390/s20041135}
+  volume  = {20},
+  number  = {4},
+  pages   = {1135},
+  year    = {2020},
+  doi     = {10.3390/s20041135}
 }
 
 @article{smelik2014,
-  author = {Smelik, Ruben M. and Tutenel, Tim and Bidarra, Rafael and Benes, Bedrich},
-  title = {A Survey on Procedural Modelling for Virtual Worlds},
+  author  = {Smelik, Ruben M. and Tutenel, Tim and Bidarra, Rafael and Benes, Bedrich},
+  title   = {A Survey on Procedural Modelling for Virtual Worlds},
   journal = {Computer Graphics Forum},
-  volume = {33},
-  number = {6},
-  pages = {31--50},
-  year = {2014},
-  doi = {10.1111/cgf.12276}
+  volume  = {33},
+  number  = {6},
+  pages   = {31--50},
+  year    = {2014},
+  doi     = {10.1111/cgf.12276},
+  note    = {Páginas citadas referem-se à versão do autor em artigos/}
 }
 
-@book{ebert2002,
-  author = {Ebert, David S. and Musgrave, F. Kenton and Peachey, Darwyn and Perlin, Ken and Worley, Steven},
-  title = {Texturing and Modeling: A Procedural Approach},
-  edition = {3},
-  publisher = {Morgan Kaufmann},
-  year = {2002}
+@online{vulkan,
+  author  = {{Khronos Group}},
+  title   = {Vulkan Tutorial: Image view and sampler},
+  url     = {https://docs.vulkan.org/tutorial/latest/06_Texture_mapping/01_Image_view_and_sampler.html},
+  urldate = {2026-10-30}
+}
+
+@online{vkmipmaps,
+  author  = {{Khronos Group}},
+  title   = {Vulkan Tutorial: Generating Mipmaps},
+  url     = {https://docs.vulkan.org/tutorial/latest/09_Generating_Mipmaps.html},
+  urldate = {2026-10-30}
+}
+
+@online{vkmapping,
+  author  = {{Khronos Group}},
+  title   = {Vulkan Guide: Mapping Data to Shaders},
+  url     = {https://docs.vulkan.org/guide/latest/mapping_data_to_shaders.html},
+  urldate = {2026-10-30}
+}
+
+@online{vklimits,
+  author  = {{Khronos Group}},
+  title   = {Vulkan Specification: Limits},
+  url     = {https://docs.vulkan.org/spec/latest/chapters/limits.html},
+  urldate = {2026-10-30}
+}
+
+@online{vkpushconstants,
+  author  = {{Khronos Group}},
+  title   = {vkCmdPushConstants(3)},
+  url     = {https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdPushConstants.html},
+  urldate = {2026-10-30}
+}
+
+@online{unrealpanner,
+  author  = {{Epic Games}},
+  title   = {Coordinates Material Expressions in Unreal Engine},
+  url     = {https://dev.epicgames.com/documentation/en-us/unreal-engine/coordinates-material-expressions-in-unreal-engine},
+  urldate = {2026-10-30}
+}
+
+@online{unitytiling,
+  author  = {{Unity Technologies}},
+  title   = {Tiling And Offset Node},
+  url     = {https://docs.unity3d.com/Packages/com.unity.shadergraph@14.0/manual/Tiling-And-Offset-Node.html},
+  urldate = {2026-10-30}
+}
+
+@online{blendermapping,
+  author  = {{Blender Foundation}},
+  title   = {Mapping Node},
+  url     = {https://docs.blender.org/manual/en/latest/render/shader_nodes/utilities/vector/mapping.html},
+  urldate = {2026-10-30}
+}
+
+@online{blendernoise,
+  author  = {{Blender Foundation}},
+  title   = {Noise Texture Node},
+  url     = {https://docs.blender.org/manual/en/latest/render/shader_nodes/textures/noise.html},
+  urldate = {2026-10-30}
+}
+
+@online{blendervoronoi,
+  author  = {{Blender Foundation}},
+  title   = {Voronoi Texture Node},
+  url     = {https://docs.blender.org/manual/en/latest/render/shader_nodes/textures/voronoi.html},
+  urldate = {2026-10-30}
+}
+
+@online{speedtree,
+  author  = {{Unity Technologies}},
+  title   = {SpeedTree},
+  url     = {https://unity.com/products/speedtree},
+  urldate = {2026-10-30}
+}
+
+@online{cityengine,
+  author  = {{Esri}},
+  title   = {Introduction to CityEngine},
+  url     = {https://doc.arcgis.com/en/cityengine/latest/get-started/get-started-about-cityengine.htm},
+  urldate = {2026-10-30}
+}
+
+@online{substance,
+  author  = {{Adobe Substance 3D}},
+  title   = {Between Modeling and Texturing: Substance Designer in Rocket League},
+  date    = {2019-02-13},
+  url     = {https://magazine.substance3d.com/between-modeling-and-texturing-substance-designer-in-rocket-league/},
+  urldate = {2026-10-30}
+}
+
+@online{rlstore,
+  author  = {{Sony Interactive Entertainment}},
+  title   = {Rocket League (PlayStation Store)},
+  url     = {https://store.playstation.com/en-us/product/UP2002-CUSA01163_00-ROCKETLEAGUENA01},
+  urldate = {2026-10-30}
+}
+
+@online{rlps5,
+  author  = {{Psyonix}},
+  title   = {Jogue Rocket League no Xbox Series X, Series S e no PlayStation 5},
+  date    = {2020-11-10},
+  url     = {https://www.rocketleague.com/news/play-rocket-league-on-xbox-series-x--series-s--and-playstation-5},
+  urldate = {2026-10-30}
+}
+
+@online{spidermanps,
+  author  = {{Sony Interactive Entertainment}},
+  title   = {Marvel's Spider-Man Remastered},
+  url     = {https://www.playstation.com/en-us/games/marvels-spider-man-remastered/},
+  urldate = {2026-10-30}
+}
+
+@online{insomniac,
+  author  = {{Insomniac Games}},
+  title   = {What is different in Marvel's Spider-Man Remastered from the original game?},
+  url     = {https://support.insomniac.games/hc/en-us/articles/46670426851475-What-is-different-in-Marvel-s-Spider-Man-Remastered-from-the-original-game},
+  urldate = {2026-10-30}
 }

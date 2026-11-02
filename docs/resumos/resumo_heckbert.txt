@@ -1,3 +1,25 @@
 Resumo - Heckbert (1986)
 
-Heckbert apresenta os fundamentos de texture mapping, destacando o mapeamento geométrico de uma textura sobre uma superfície e a filtragem necessária para reduzir aliasing. O trabalho mostra como texturas podem aumentar a riqueza visual sem exigir que todos os detalhes sejam modelados geometricamente. A publicação fundamenta o conceito de espaço de textura e é usada no trabalho como base para a explicação do UV mapping.
+Título: Survey of Texture Mapping
+Autor: Paul S. Heckbert
+Ano: 1986 (IEEE Computer Graphics and Applications, v. 6, n. 11, p. 56-67)
+DOI: https://doi.org/10.1109/MCG.1986.276672
+Arquivo: artigos/Heckbert (1986).pdf (versão do autor; as páginas abaixo são dessa versão)
+
+Objetivo:
+Organizar o conhecimento sobre texture mapping disponível até meados dos anos 1980, separando o problema em duas partes: o mapeamento geométrico, que deforma a textura sobre a superfície, e a filtragem, necessária para evitar aliasing (p. 1).
+
+Principais conceitos:
+- Mapeamento como composição: parametrização da superfície (textura -> objeto) seguida da projeção (objeto -> tela) (p. 2).
+- Parâmetros que podem ser mapeados: cor, normal (bump), especular, transparência, deslocamento (p. 2).
+- Mapeamentos afim, bilinear e projetivo; interpolação correta em perspectiva, com uma divisão por pixel (p. 4-5).
+- Taxonomia dos filtros: convolução direta, pré-filtragem (pirâmides/mipmaps, summed-area tables) e séries de Fourier (p. 7).
+- Tabela de custo e memória: a pirâmide de mipmaps ocupa 4/3 da textura; a interpolação trilinear custa 8 acessos e 7 multiplicações por pixel (p. 9-10).
+
+Relação com o tema:
+É a base do UV mapping: define o espaço (u,v), mostra como ele chega a cada pixel e quanto custa ler a textura corretamente. O UV dinâmico altera justamente a parametrização descrita pelo autor. O artigo é anterior às GPUs programáveis e não trata de UV animado.
+
+Informações aproveitadas no relatório:
+- Composição do mapeamento e ordem de varredura (Fundamentação teórica).
+- Interpolação com correção de perspectiva e seleção do nível de mipmap (Equações).
+- Aliasing, custo da filtragem trilinear e memória dos mipmaps (Fundamentação e Vulkan).
