@@ -1,360 +1,135 @@
+// Arquitetura do pipeline Vulkan - UV Mapping Dinâmico e Procedural
+// Reflete a implementação em código/src/VulkanApp.cpp.
+// Gerar: dot -Tpdf pipeline_vulkan.dot -o pipeline_vulkan.pdf
+//
+// Cores dos nós: azul = dados e recursos; verde = estágios e shaders;
+// laranja = sincronização; roxo = render pass e attachments;
+// amarelo = operações de UV mapping.
+// Setas: contínuas = fluxo de dados; tracejadas laranja = sincronização.
+
 digraph VulkanPipeline {
 
     graph [
-        rankdir=LR,
-        splines=ortho,
-        nodesep=0.55,
-        ranksep=0.9,
-        pad=0.3,
+        rankdir=TB,
+        splines=spline,
+        nodesep=0.12,
+        ranksep=0.30,
+        pad=0.15,
         bgcolor="white",
         fontname="Arial",
-        label="Arquitetura do Pipeline Vulkan — UV Mapping Dinâmico e Procedural",
-        labelloc="t",
-        fontsize=20
+        fontsize=16,
+        newrank=true,
+        compound=true
     ];
 
     node [
         shape=box,
         style="rounded,filled",
         fontname="Arial",
-        fontsize=10,
-        margin="0.12,0.08"
+        fontsize=13,
+        margin="0.10,0.06"
     ];
 
     edge [
         fontname="Arial",
-        fontsize=8,
+        fontsize=11,
         color="#333333",
         arrowsize=0.7
     ];
 
-
+    // ---------------- Aplicação (CPU) ----------------
     subgraph cluster_cpu {
-        label="Aplicação / CPU";
-        color="#777777";
-        style="rounded,dashed";
-        fontsize=13;
+        label="Aplicação (CPU)"; style="rounded,dashed"; color="#777777";
 
-        cpu [
-            label="Aplicação\nAtualização de parâmetros",
-            fillcolor="#D9EAF7"
-        ];
-
-        vertex_buffer [
-            label="Vertex Buffer\n\nposição\nnormal\nUV (u,v)",
-            fillcolor="#D9EAF7"
-        ];
-
-        index_buffer [
-            label="Index Buffer\n\níndices dos vértices",
-            fillcolor="#D9EAF7"
-        ];
-
-        uniform_buffer [
-            label="Uniform Buffer (UBO)\n\nmatriz/transformação\nUV dinâmica\ntempo\nvelocidade\nescala/parâmetros",
-            fillcolor="#D9EAF7"
-        ];
+        app [label="Aplicação\nrelógio (std::chrono)\nteclas 1 a 5 (modo)", fillcolor="#D9EAF7"];
+        vbuf [label="Vertex Buffer\nDEVICE_LOCAL, stride 32 B\npos (0) · normal (12) · uv (24)", fillcolor="#D9EAF7"];
+        ibuf [label="Index Buffer\nDEVICE_LOCAL, UINT32\n12.636 índices", fillcolor="#D9EAF7"];
+        ubo  [label="Uniform Buffer (1 por imagem)\nM, V, P · time · mode\n208 B, std140, mapeado", fillcolor="#D9EAF7"];
+        staging [label="Staging buffers\n(cópia única)", fillcolor="#D9EAF7"];
     }
 
+    // ---------------- Textura ----------------
+    subgraph cluster_tex {
+        label="Textura"; style="rounded,dashed"; color="#777777";
 
-
-    subgraph cluster_descriptors {
-        label="Descriptor Set 0";
-        color="#777777";
-        style="rounded,dashed";
-        fontsize=13;
-
-        descriptors [
-            label="Descriptor Set 0\n\nBinding 0 → Uniform Buffer\nBinding 1 → Image View\nBinding 2 → Sampler",
-            fillcolor="#E4D9F7"
-        ];
+        teximg [label="VkImage\nR8G8B8A8_SRGB\n512×512, 1 nível", fillcolor="#D9EAF7"];
+        texview [label="VkImageView", fillcolor="#D9EAF7"];
+        sampler [label="VkSampler\nLINEAR · REPEAT\nanisotropia", fillcolor="#D9EAF7"];
     }
 
-
-    // =====================================================
-    // RECURSOS DE TEXTURA
-    // =====================================================
-
-    subgraph cluster_texture {
-        label="Recursos de Textura";
-        color="#777777";
-        style="rounded,dashed";
-        fontsize=13;
-
-        image [
-            label="Texture Image\n\nImagem da textura",
-            fillcolor="#D9EAF7"
-        ];
-
-        image_view [
-            label="Image View\n\nVisão da imagem",
-            fillcolor="#D9EAF7"
-        ];
-
-        sampler [
-            label="Sampler\n\nfiltragem\nendereçamento\nmipmapping",
-            fillcolor="#D9EAF7"
-        ];
-    }
-
-
+    // ---------------- Sincronização ----------------
     subgraph cluster_sync {
-        label="Sincronização e Image Layouts";
-        color="#C47A00";
-        style="rounded,dashed";
-        fontsize=13;
+        label="Sincronização"; style="rounded,dashed"; color="#C47A00";
 
-        barrier_upload [
-            label="Image Memory Barrier\n\nTRANSFER → FRAGMENT SHADER\n\nTRANSFER_DST_OPTIMAL\n↓\nSHADER_READ_ONLY_OPTIMAL",
-            fillcolor="#F9E2B8",
-            color="#C47A00"
-        ];
-
-        barrier_ubo [
-            label="Sincronização UBO\n\nHOST WRITE\n↓\nSHADER READ\n\nGarante que os parâmetros\natualizados estejam disponíveis",
-            fillcolor="#F9E2B8",
-            color="#C47A00"
-        ];
+        bar1 [label="Barreira 1\nUNDEFINED → TRANSFER_DST\nTOP_OF_PIPE → TRANSFER", fillcolor="#F9E2B8", color="#C47A00"];
+        bar2 [label="Barreira 2\nTRANSFER_DST → SHADER_READ_ONLY\nTRANSFER → FRAGMENT_SHADER", fillcolor="#F9E2B8", color="#C47A00"];
+        fences [label="Fences e semáforos\n2 quadros em execução\nimagesInFlight (por imagem)\nimageAvailable · renderFinished", fillcolor="#F9E2B8", color="#C47A00"];
+        subdep [label="Dependência do subpass\nEXTERNAL → Subpass 0\nCOLOR_ATTACHMENT_OUTPUT +\ntestes de fragmento", fillcolor="#F9E2B8", color="#C47A00"];
     }
 
+    // ---------------- Descriptor set ----------------
+    subgraph cluster_desc {
+        label="Descriptor Set 0"; style="rounded,dashed"; color="#777777";
 
-    subgraph cluster_pipeline {
-        label="Graphics Pipeline";
-        color="#4C8C4A";
-        style="rounded,dashed";
-        fontsize=13;
-
-        vertex_input [
-            label="Vertex Input\n\nVertex Buffer\n+\nIndex Buffer",
-            fillcolor="#DCEFD8"
-        ];
-
-        vertex_shader [
-            label="Vertex Shader\n\nprocessa posição\nrecebe UV\naplica transformações\nnecessárias",
-            fillcolor="#CDE8C9"
-        ];
-
-        rasterization [
-            label="Rasterização\n\nPrimitivas → Fragmentos",
-            fillcolor="#CDE8C9"
-        ];
-
-        interpolation [
-            label="Interpolação\n\nUV dos vértices\n→ UV por fragmento",
-            fillcolor="#CDE8C9"
-        ];
-
-        fragment_shader [
-            label="Fragment Shader\n\nUV dinâmico\n+\nfunção procedural\n+\nsampling da textura",
-            fillcolor="#BFE0BA"
-        ];
+        desc [label="binding 0: UNIFORM_BUFFER\n(vertex + fragment)\n\nbinding 1: COMBINED_IMAGE_SAMPLER\n(fragment)", fillcolor="#E4D9F7"];
     }
 
+    // ---------------- Pipeline gráfico ----------------
+    subgraph cluster_pipe {
+        label="Pipeline gráfico"; style="rounded,dashed"; color="#4C8C4A";
 
+        vin  [label="Vertex Input", fillcolor="#DCEFD8"];
+        vs   [label="Vertex Shader\ngl_Position = P·V·M·p\nrepassa UV e normal", fillcolor="#CDE8C9"];
+        rast [label="Rasterização\n+ interpolação\n(correção de perspectiva)", fillcolor="#CDE8C9"];
+        fs   [label="Fragment Shader\nescolhe o modo (1 a 5)\n+ iluminação difusa", fillcolor="#BFE0BA"];
 
-    subgraph cluster_renderpass {
-        label="Render Pass";
-        color="#7A4E9A";
-        style="rounded,dashed";
-        fontsize=13;
-
-        subpass [
-            label="Subpass 0\n\nRenderização da superfície",
-            fillcolor="#E8D9F0"
-        ];
-
-        color_attachment [
-            label="Color Attachment\n\nImagem de saída\ncor final",
-            fillcolor="#E8D9F0"
-        ];
-
-        depth_attachment [
-            label="Depth Attachment\n\nProfundidade da cena",
-            fillcolor="#E8D9F0"
-        ];
-
-        framebuffer [
-            label="Framebuffer\n\nColor + Depth",
-            fillcolor="#DCC8E8"
-        ];
+        dyn  [label="UV dinâmico\nu' = u + 0,10·t\n+ ondulação", fillcolor="#FFF2CC", color="#B7950B"];
+        proc [label="Procedural\nC = f(UV, t)\n3 senoides", fillcolor="#FFF2CC", color="#B7950B"];
     }
 
+    // ---------------- Render pass ----------------
+    subgraph cluster_rp {
+        label="Render Pass (Subpass 0)"; style="rounded,dashed"; color="#7A4E9A";
 
-
-    cpu -> vertex_buffer [
-        label="dados da malha"
-    ];
-
-    cpu -> index_buffer [
-        label="índices"
-    ];
-
-    cpu -> uniform_buffer [
-        label="parâmetros / tempo"
-    ];
-
-    vertex_buffer -> vertex_input [
-        label="Vertex Input"
-    ];
-
-    index_buffer -> vertex_input [
-        label="índices"
-    ];
-
-    uniform_buffer -> descriptors [
-        label="Binding 0"
-    ];
-
-    image_view -> descriptors [
-        label="Binding 1"
-    ];
-
-    sampler -> descriptors [
-        label="Binding 2"
-    ];
-
-    descriptors -> vertex_shader [
-        label="recursos disponíveis"
-    ];
-
-    descriptors -> fragment_shader [
-        label="recursos disponíveis"
-    ];
-
-    vertex_input -> vertex_shader [
-        label="atributos dos vértices"
-    ];
-
-    vertex_shader -> rasterization [
-        label="posição transformada + UV"
-    ];
-
-    rasterization -> interpolation [
-        label="fragmentos"
-    ];
-
-    interpolation -> fragment_shader [
-        label="UV interpolada"
-    ];
-
-    fragment_shader -> subpass [
-        label="cor calculada"
-    ];
-
-    subpass -> color_attachment [
-        label="resultado"
-    ];
-
-    subpass -> depth_attachment [
-        label="profundidade"
-    ];
-
-    color_attachment -> framebuffer [
-        label="Color"
-    ];
-
-    depth_attachment -> framebuffer [
-        label="Depth"
-    ];
-
-
-
-    image -> barrier_upload [
-        label="upload / transferência"
-    ];
-
-    barrier_upload -> image_view [
-        label="imagem pronta\npara shader"
-    ];
-
-    sampler -> fragment_shader [
-        label="amostragem"
-    ];
-
-    image_view -> fragment_shader [
-        label="textura"
-    ];
-
-
-    cpu -> barrier_ubo [
-        label="atualização"
-    ];
-
-    barrier_ubo -> uniform_buffer [
-        label="UBO disponível"
-    ];
-
-    barrier_upload -> fragment_shader [
-        label="dependência de memória"
-    ];
-
-
-    dynamic_uv [
-        label="UV Mapping Dinâmico\n\nUV' = UV + deslocamento(t)\n\nmovimento / escala / rotação",
-        fillcolor="#FFF2CC",
-        color="#B7950B"
-    ];
-
-    procedural_uv [
-        label="Mapeamento Procedural\n\nC = f(UV, P, t)\n\npadrão calculado\nmatematicamente",
-        fillcolor="#FFF2CC",
-        color="#B7950B"
-    ];
-
-    uniform_buffer -> dynamic_uv [
-        label="tempo / velocidade"
-    ];
-
-    interpolation -> dynamic_uv [
-        label="UV"
-    ];
-
-    dynamic_uv -> fragment_shader [
-        label="UV modificada"
-    ];
-
-    interpolation -> procedural_uv [
-        label="UV / posição"
-    ];
-
-    uniform_buffer -> procedural_uv [
-        label="parâmetros"
-    ];
-
-    procedural_uv -> fragment_shader [
-        label="resultado procedural"
-    ];
-
-
-    subgraph cluster_legend {
-        label="Legenda";
-        color="#777777";
-        style="rounded,dashed";
-        fontsize=13;
-
-        legend_data [
-            label="Azul\nRecursos e dados",
-            fillcolor="#D9EAF7"
-        ];
-
-        legend_shader [
-            label="Verde\nProcessamento / Shaders",
-            fillcolor="#CDE8C9"
-        ];
-
-        legend_sync [
-            label="Laranja\nSincronização / Barreiras",
-            fillcolor="#F9E2B8"
-        ];
-
-        legend_render [
-            label="Roxo\nRender Pass / Attachments",
-            fillcolor="#E8D9F0"
-        ];
-
-        legend_uv [
-            label="Amarelo\nOperações específicas de UV Mapping",
-            fillcolor="#FFF2CC"
-        ];
+        color_att [label="Color attachment\nCLEAR / STORE\nUNDEFINED → COLOR_ATTACHMENT_OPTIMAL\n→ PRESENT_SRC_KHR", fillcolor="#E8D9F0"];
+        depth_att [label="Depth attachment\nD32_SFLOAT · CLEAR / DONT_CARE\nUNDEFINED →\nDEPTH_STENCIL_ATTACHMENT_OPTIMAL", fillcolor="#E8D9F0"];
+        fb [label="Framebuffer\n(1 por imagem)", fillcolor="#DCC8E8"];
     }
+
+    present [label="Swapchain\napresentação", fillcolor="#D9EAF7"];
+
+    // ---------------- Fluxo de dados ----------------
+    app -> ubo [label="time, mode, M, V, P\n(memcpy por quadro)"];
+    staging -> vbuf [label="vkCmdCopyBuffer"];
+    staging -> ibuf;
+    staging -> teximg [label="vkCmdCopyBufferToImage"];
+
+    vbuf -> vin [label="atributos"];
+    ibuf -> vin [label="índices"];
+    vin -> vs;
+    vs -> rast [label="posição + UV"];
+    rast -> fs [label="fragUV, fragNormal"];
+    fs -> dyn [dir=both, label="modos 2 e 4"];
+    fs -> proc [dir=both, label="modos 3 e 4"];
+    fs -> color_att [label="outColor"];
+    rast -> depth_att [label="teste de\nprofundidade"];
+    color_att -> fb;
+    depth_att -> fb;
+    fb -> present;
+
+    ubo -> desc [label="binding 0"];
+    teximg -> texview;
+    texview -> desc [label="binding 1"];
+    sampler -> desc [label="binding 1"];
+    desc -> vs [label="UBO"];
+    desc -> fs [label="UBO + textura"];
+
+    // ---------------- Sincronização ----------------
+    teximg -> bar1 [style=dashed, color="#C47A00"];
+    bar1 -> bar2 [style=dashed, color="#C47A00", label="após a cópia"];
+    bar2 -> fs [style=dashed, color="#C47A00", label="textura pronta"];
+    fences -> ubo [style=dashed, color="#C47A00", label="libera a escrita"];
+    fences -> present [style=dashed, color="#C47A00", label="renderFinished"];
+    subdep -> color_att [style=dashed, color="#C47A00", label="espera o quadro anterior"];
+    subdep -> depth_att [style=dashed, color="#C47A00"];
 }
