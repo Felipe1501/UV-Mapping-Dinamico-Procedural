@@ -1,52 +1,110 @@
 
 \section{UV Mapping tradicional}
 
-O UV mapping estabelece uma correspondência entre a superfície de um objeto tridimensional e uma imagem bidimensional. As coordenadas \(U\) e \(V\) normalmente são normalizadas no intervalo \([0,1]\). Dessa maneira, um vértice do modelo pode carregar, além de sua posição e outros atributos, uma coordenada que indica qual região da textura deve ser associada àquele ponto.
+O UV mapping estabelece uma correspondência entre a superfície de um objeto tridimensional e uma imagem bidimensional. As coordenadas \(U\) e \(V\) normalmente são normalizadas no intervalo \([0,1]\). Dessa maneira, um vértice do modelo carrega, além de sua posição e de sua normal, uma coordenada que indica qual ponto da textura corresponde àquele ponto da superfície.
 
-No pipeline de renderização, as coordenadas dos vértices são fornecidas ao estágio de vértice e, durante a rasterização, são interpoladas para os fragmentos. O fragment shader pode então utilizar as coordenadas interpoladas para consultar uma textura por meio de um sampler.
+Heckbert \cite[p.~2]{heckbert1986} descreve o processo como a composição de dois mapeamentos. O primeiro é a \textit{parametrização da superfície}, que leva o espaço de textura \((u,v)\) ao espaço do objeto. O segundo são as transformações de modelagem e de visualização, que levam o objeto ao espaço de tela \((x,y)\). Na prática, o espaço 3D intermediário costuma ser ``esquecido'': o que interessa ao renderizador é a relação direta entre cada pixel e um ponto da textura. Em superfícies paramétricas essa parametrização é natural, mas em malhas poligonais ela precisa ser definida explicitamente \cite[p.~3]{heckbert1986}. É exatamente isso que o artista faz ao ``desdobrar'' um modelo e salvar o atributo \texttt{TEXCOORD\_0} em um arquivo glTF, como o modelo \texttt{Duck.glb} usado na implementação deste trabalho.
 
-Heckbert \cite{heckbert1986} destaca dois aspectos centrais do texture mapping: o mapeamento geométrico, responsável por relacionar a textura à superfície, e a filtragem, necessária para reduzir artefatos como aliasing.
+Entre as ordens de varredura analisadas por Heckbert, a mais comum é a varredura em ordem de tela (\textit{inverse mapping}): para cada pixel, encontra-se a sua pré-imagem no espaço de textura e filtra-se essa região \cite[p.~3]{heckbert1986}. Essa é a lógica do fragment shader em uma GPU moderna: o rasterizador gera um fragmento por pixel coberto, interpola o UV dos vértices e o shader consulta a textura naquele ponto por meio de um sampler.
+
+Heckbert também separa o texture mapping em duas partes: o mapeamento geométrico, que deforma a textura sobre a superfície, e a filtragem, necessária para evitar aliasing \cite[p.~1]{heckbert1986}. Ambas reaparecem quando o mapeamento passa a ser dinâmico ou procedural.
 
 \section{UV Mapping dinâmico}
 
-O UV mapping dinâmico consiste em modificar as coordenadas de textura durante a execução. Uma transformação simples é a translação:
+O UV mapping dinâmico consiste em modificar as coordenadas de textura durante a execução, sem alterar a malha. Uma transformação simples é a translação:
 
 \[
 u'=u+\Delta u,\qquad v'=v+\Delta v.
 \]
 
-Se \(\Delta u\) ou \(\Delta v\) variarem com o tempo, a textura pode apresentar movimento contínuo. Esse mecanismo pode ser empregado para representar, por exemplo, o deslocamento visual de água, energia, lava ou elementos de interface.
+Se \(\Delta u\) ou \(\Delta v\) variarem com o tempo, a textura desliza sobre a superfície. Em termos da composição de Heckbert, o que muda a cada quadro é a parametrização da superfície: a geometria e a câmera continuam as mesmas, mas cada ponto da superfície passa a apontar para outro ponto da textura. Também podem ser aplicadas escala, rotação e deformações não lineares (ondulações), cujas equações e o momento em que cada uma é executada no pipeline são detalhados no Capítulo~\ref{chap:equacoes}.
 
-Também podem ser aplicadas escala e rotação. A combinação dessas operações permite controlar a velocidade, direção, repetição e orientação de uma textura sem modificar a malha original.
+Como as coordenadas transformadas saem do intervalo \([0,1]\), a técnica depende de um modo de endereçamento que repita a textura. No Vulkan, isso é feito pelo sampler com \texttt{VK\_SAMPLER\_ADDRESS\_MODE\_REPEAT}, que é o modo usado na implementação deste trabalho.
 
 \section{Mapeamento procedural}
 
-No mapeamento procedural, o resultado é produzido por uma função ou procedimento. Dong et al. \cite{dong2020} definem a geração procedural de texturas como o processo de criação de texturas por meio de modelos matemáticos e apresentam uma revisão de diferentes métodos para geração de texturas bidimensionais.
+No mapeamento procedural, a cor (ou a própria coordenada) é produzida por uma função, em vez de lida de uma imagem. Dong et al.\ definem a geração procedural de texturas como ``o processo de criar texturas usando modelos matemáticos'', cuja entrada pode ser um conjunto de parâmetros, valores aleatórios de funções de ruído ou imagens existentes \cite[p.~1]{dong2020}. Heckbert já previa essa possibilidade ao afirmar que uma textura pode ser representada ``por um array ou por uma função matemática'', citando texturas de nuvens, madeira e mármore \cite[p.~1]{heckbert1986}, e as \textit{solid textures}, que dispensam a parametrização porque são avaliadas diretamente na posição 3D \cite[p.~3]{heckbert1986}.
 
-Uma formulação simplificada pode ser escrita como:
+Uma formulação simplificada é:
 
 \[
 C=f(P,t),
 \]
 
-em que \(P\) representa uma posição espacial, \(t\) representa uma variável temporal quando necessário e \(f\) representa a função procedural responsável pelo resultado.
+em que \(P\) representa uma posição (no espaço UV ou no espaço 3D), \(t\) uma variável temporal e \(f\) a função procedural.
 
-A abordagem procedural é útil quando se deseja gerar padrões repetitivos, variações ou materiais sem armazenar uma imagem diferente para cada situação. Ela também pode ser combinada com UV coordinates tradicionais.
+Dong et al.\ organizam os métodos em funções \textit{estruturadas} (com aparência de regularidade, como autômatos celulares, reação-difusão, posicionamento de textons, diagramas de Voronoi e padrões islâmicos) e \textit{não estruturadas} (com aparência aleatória, em que predominam as funções de ruído, divididas em métodos no domínio da frequência e no domínio espacial) \cite[pp.~3--4]{dong2020}. O padrão procedural implementado neste trabalho (modo~3) é uma soma de três senoides avaliadas sobre coordenadas distorcidas. A ideia de compor o padrão com senoides vem das séries de Fourier usadas como função de textura, que Heckbert registra \cite[p.~10]{heckbert1986}. A distorção aplicada às coordenadas, porém, faz com que o resultado não seja estritamente uma série de Fourier.
 
-\section{Vantagens}
+\section{Quando usar cada abordagem}
 
-Entre as principais vantagens estão a flexibilidade, a possibilidade de animação em tempo real, o reaproveitamento de texturas e a geração de variações sem necessidade de armazenar todos os resultados previamente.
+As três abordagens não competem entre si. Cada uma resolve um problema diferente, e a escolha depende do conteúdo da superfície. Dong et al.\ chegam à mesma conclusão para os métodos procedurais: o mais adequado ``depende dos requisitos da superfície desejada'' \cite[p.~22]{dong2020}. A Tabela~\ref{tab:quando-usar} resume os critérios usados neste trabalho.
 
-Métodos procedurais também podem reduzir a quantidade de dados necessários para representar determinados tipos de conteúdo. Smelik et al. \cite{smelik2014} destacam que métodos procedurais são atrativos para a geração de grandes quantidades de conteúdo em ambientes virtuais, embora o controle artístico e a interatividade continuem sendo desafios importantes.
+\begin{table}[H]
+\centering
+\caption{Critérios de escolha entre UV tradicional, UV dinâmico e procedural.}
+\label{tab:quando-usar}
+\small
+\begin{tabular}{p{4.2cm}p{3.2cm}p{6.4cm}}
+\toprule
+\textbf{Situação} & \textbf{Abordagem} & \textbf{Motivo} \\
+\midrule
+Detalhe único pintado pelo artista (rosto, logotipo, decalque, texto) & UV tradicional & A informação é posicional: deslocá-la ou gerá-la por função destruiria o conteúdo. Funções procedurais são difíceis de controlar para reproduzir um desenho específico \cite[p.~2]{dong2020}. \\
+\addlinespace
+Movimento contínuo e repetitivo (água, lava, esteira, tela, campo de energia) & UV dinâmico & Uma única textura repetível gera o movimento inteiro. O custo é uma amostragem e poucas operações por fragmento. \\
+\addlinespace
+Grandes áreas sem repetição visível (terreno, pedra, nuvem) & Procedural & Não há limite de tamanho ou resolução, nem costuras ou repetições indesejadas \cite[p.~2]{dong2020}. \\
+\addlinespace
+Muitas variações de um mesmo material & Procedural & Variar os parâmetros gera uma família de texturas relacionadas, em vez de uma única imagem fixa \cite[p.~2]{dong2020}. \\
+\addlinespace
+Conteúdo em escala de mundo (cidades, vegetação) & Modelagem procedural, em geral \textit{offline} & Amplificação de dados: poucos parâmetros produzem grande variedade de modelos \cite[p.~1]{smelik2014}. \\
+\addlinespace
+Reproduzir uma textura real específica & Textura fotografada ou pintada & Ajustar um modelo procedural a um exemplo dado é apontado como um desafio ainda difícil \cite[p.~23]{dong2020}. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Na prática, as técnicas são combinadas. O modo~4 da implementação, por exemplo, aplica UV dinâmico sobre a textura original do modelo e sobrepõe ondas de um padrão procedural apenas nas regiões de maior ``energia''. O UV dinâmico também não é indicado para texturas que não sejam repetíveis (\textit{tileable}): ao deslizar uma imagem cujas bordas não se encaixam, a linha de emenda aparece atravessando a superfície.
 
 \section{Limitações}
 
-A técnica não elimina os problemas tradicionais de mapeamento. Podem ocorrer distorções, descontinuidades, repetição excessiva de padrões e artefatos de filtragem. No caso procedural, funções muito complexas também podem aumentar o custo computacional.
+\textbf{Distorção e costuras herdadas da parametrização.} UV dinâmico e procedural em espaço UV não corrigem a parametrização original: apenas a reutilizam. Se o artista esticou a textura em uma região, o padrão animado também fica esticado ali. Nas costuras do desdobramento (\textit{seams}), dois pontos vizinhos na superfície correspondem a pontos distantes na textura, e um deslocamento contínuo fica descontínuo na emenda. Heckbert observa o mesmo problema no bump mapping, cujas tangentes nas direções \(u\) e \(v\) precisam ser contínuas através das costuras dos polígonos \cite[p.~11]{heckbert1986}. O modo~5 da implementação (grade UV) existe justamente para tornar visíveis o esticamento e as costuras do modelo.
 
-Outro ponto é o controle artístico: uma função procedural pode gerar grande variedade, mas é necessário definir parâmetros que permitam ao artista controlar o resultado desejado.
+\textbf{Aliasing.} Uma superfície vista obliquamente pode criar frequências arbitrariamente altas na tela \cite[p.~6]{heckbert1986}. Em uma textura armazenada, isso é contornado com pré-filtragem (mipmaps). Uma função procedural, porém, não tem mipmaps: ela é avaliada no centro de cada fragmento, e qualquer frequência acima do limite do pixel vira ruído ou padrão de moiré. Heckbert indica que funções de textura arbitrárias são mais difíceis de filtrar que arrays e exigem amostragem estocástica adaptativa \cite[p.~11]{heckbert1986}. Dong et al.\ apontam que o próprio ruído de Perlin original ``é propenso a problemas de aliasing e perda de detalhe'' \cite[p.~13]{dong2020}. Na implementação deste trabalho, as linhas da grade procedural usam \texttt{smoothstep} com largura fixa no espaço UV e, por isso, apresentam serrilhado quando o modelo fica pequeno na tela.
+
+\textbf{Controle artístico.} Segundo Dong et al., ``é difícil prever a aparência da textura ao escolher um conjunto de parâmetros'', mesmo para profissionais experientes \cite[p.~2]{dong2020}. Em métodos como a reação-difusão, pequenas variações nos parâmetros podem gerar texturas completamente diferentes \cite[p.~5]{dong2020}. Smelik et al.\ apontam a baixa controlabilidade como o principal motivo de os métodos procedurais ainda não substituírem a modelagem manual \cite[p.~1]{smelik2014}: uma pequena alteração em uma regra provoca uma reação em cadeia no modelo inteiro, e o uso se reduz a tentativa e erro \cite[p.~12]{smelik2014}.
+
+\textbf{Precisão numérica do tempo.} O parâmetro \(t\) é um \texttt{float} de 32 bits que cresce sem limite. A partir de \(t \approx 10^5\,\text{s}\) (cerca de 28 horas de execução), o menor incremento representável de \(t\) passa a ser de aproximadamente \(0{,}008\,\text{s}\), metade da duração de um quadro a 60~Hz, e a animação começa a ``engasgar''. A solução é manter o tempo periódico na CPU (por exemplo, aplicando \(t \bmod T\) com o período \(T\) da animação) antes de enviá-lo ao shader. A implementação atual não faz isso.
+
+\textbf{Aparência, não forma.} O UV dinâmico muda o que se vê na superfície, mas não muda a silhueta. Ondas em uma superfície de água feitas apenas com UV não fazem o contorno do objeto ondular. Para isso, é preciso deslocar vértices (\textit{displacement}).
 
 \section{Custo computacional}
 
-O custo depende principalmente da quantidade de cálculos executados por fragmento, do número de amostragens de textura, dos filtros utilizados e da resolução envolvida. Operações realizadas no fragment shader podem ser executadas muitas vezes, pois um mesmo shader pode processar grande quantidade de fragmentos.
+Heckbert destaca que o texture mapping aumenta a riqueza visual ``com um aumento relativamente pequeno de computação'' \cite[p.~1]{heckbert1986}. Esse custo, porém, depende de onde cada operação é executada e de quantas vezes ela se repete. A diferença de escala é grande: o modelo usado na implementação tem 2.399 vértices, enquanto uma janela de \(800\times600\) tem 480.000 pixels, e uma tela Full HD (\(1920\times1080\)) tem 2.073.600. Uma operação no fragment shader pode, portanto, executar centenas de vezes mais que a mesma operação no vertex shader.
 
-Por isso, uma implementação eficiente deve avaliar quais cálculos realmente precisam ser feitos por fragmento e quais podem ser antecipados ou simplificados.
+A Tabela~\ref{tab:custo-modos} conta as operações por fragmento de cada modo da implementação, a partir do código de \texttt{uv\_mapping.frag}.
+
+\begin{table}[H]
+\centering
+\caption{Custo por fragmento dos modos implementados (contagem a partir do shader).}
+\label{tab:custo-modos}
+\small
+\begin{tabular}{p{4.6cm}ccp{4.4cm}}
+\toprule
+\textbf{Modo} & \textbf{Amostras} & \textbf{sin/cos} & \textbf{Memória de textura} \\
+\midrule
+1 -- Textura original & 1 & 0 & 1 MiB (\(512\times512\) RGBA8) \\
+2 -- UV dinâmico & 1 & 2 & 1 MiB (a mesma textura) \\
+3 -- Procedural & 0 & 6 & 0 (só o código do shader) \\
+4 -- Textura + procedural & 1 & 8 & 1 MiB \\
+5 -- Grade UV & 0 & 0 & 0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+No pior caso, com o modelo cobrindo uma tela Full HD a 60 quadros por segundo, o modo~3 avalia cerca de \(2{,}07\times10^{6}\times6\times60\approx7{,}5\times10^{8}\) funções trigonométricas por segundo. Uma GPU atual processa esse volume com folga, mas ele cresce linearmente com a resolução (quatro vezes mais em 4K), com a sobreposição de fragmentos (\textit{overdraw}) e com o número de camadas procedurais.
+
+O procedural troca memória por cálculo. Uma textura de \(4096\times4096\) em RGBA8 ocupa 64 MiB, e com a cadeia completa de mipmaps chega a \(4/3\) disso, cerca de 85 MiB \cite[p.~9]{heckbert1986}. O padrão procedural equivalente não ocupa memória de textura, mas paga o custo em instruções a cada fragmento e a cada quadro. Na filtragem, Heckbert mostra que a interpolação trilinear sobre uma pirâmide de mipmaps custa 8 acessos e 7 multiplicações por pixel, com custo constante, enquanto a convolução direta tem custo proporcional ao número de texels acessados, isto é, à área filtrada \cite[pp.~8--9, 11]{heckbert1986}. O autor também observa que a pré-filtragem só compensa quando a textura é reutilizada em vários quadros \cite[p.~10]{heckbert1986}. Essa condição vale para o UV dinâmico, que reaproveita a mesma imagem filtrada, mas não para um padrão recalculado a cada quadro.
+
+Sobre a viabilidade em tempo real, a literatura consultada é cautelosa. Dong et al.\ geraram as amostras do estudo em \(512\times512\) \cite[p.~19]{dong2020} e relatam que todos os métodos levaram, em geral, menos de um segundo por imagem em um computador de mesa, motivo pelo qual não apresentam medidas de complexidade \cite[p.~21]{dong2020}. Essa medida é de geração de uma imagem completa, e não de avaliação por fragmento em tempo real. Smelik et al.\ afirmam que métodos procedurais ``frequentemente não são rápidos o suficiente'' para retorno interativo \cite[p.~14]{smelik2014}, com exceção de algoritmos como o fBm, em que cada ponto é calculado de forma independente e paralelizável na GPU \cite[p.~3]{smelik2014}. O padrão do modo~3 tem essa mesma característica: cada fragmento é independente dos vizinhos, o que permite executá-lo inteiro no fragment shader.
+
+Uma regra prática decorre dessas observações. Operações lineares no UV (translação, escala, rotação) produzem o mesmo resultado se forem aplicadas nos vértices e depois interpoladas, e por isso podem ir para o vertex shader. Já operações não lineares (ondulações com \(\sin\), funções de ruído) precisam ficar no fragment shader, porque, avaliadas apenas nos vértices, ficariam dependentes da densidade da malha.

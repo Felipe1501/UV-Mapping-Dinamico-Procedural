@@ -1,114 +1,205 @@
-\section{Coordenadas UV}
 
-As coordenadas básicas são representadas por:
+Este capítulo apresenta as equações da técnica na ordem em que são executadas durante a renderização de um quadro. Para cada uma, é indicado o estágio do pipeline que a executa, quantas vezes ela é avaliada e onde aparece na implementação (\texttt{código/shaders/uv\_mapping.vert}, \texttt{uv\_mapping.frag} e \texttt{VulkanApp.cpp}). A Tabela~\ref{tab:equacoes-estagios}, ao final, resume essa correspondência.
+
+\section{Coordenadas UV do vértice}
+
+\textbf{Onde:} atributo de vértice, lido pelo estágio \textit{Vertex Input}. \textbf{Quando:} uma vez por vértice, a cada quadro.
 
 \begin{equation}
 (u,v), \qquad 0\leq u\leq1,\quad 0\leq v\leq1.
+\label{eq:uv}
 \end{equation}
 
-\(u\) representa a posição horizontal da textura e \(v\) representa a posição vertical. Os valores normalizados permitem acessar a textura independentemente de sua resolução.
+\(u\) representa a posição horizontal na textura e \(v\) a vertical. Por serem normalizadas, as coordenadas não dependem da resolução da imagem: o mesmo modelo funciona com uma textura de \(512\times512\) ou de \(4096\times4096\). Na implementação, cada vértice ocupa 32 bytes (posição, normal e UV, todos em \texttt{float}), e o UV vem do atributo \texttt{TEXCOORD\_0} do glTF, que chega ao shader como \texttt{layout(location = 2) in vec2 inUV}.
 
-\section{Translação}
+\section{Transformação da posição}
 
-A translação das coordenadas é dada por:
+\textbf{Onde:} vertex shader. \textbf{Quando:} uma vez por vértice.
 
 \begin{equation}
-u'=u+\Delta u,\qquad v'=v+\Delta v.
+p_{\text{clip}} = P \cdot V \cdot M \cdot p_{\text{objeto}}.
+\label{eq:mvp}
 \end{equation}
 
-Os termos \(\Delta u\) e \(\Delta v\) determinam o deslocamento. Se o deslocamento for atualizado com o tempo, a textura pode aparentar movimento.
+Esta é a segunda metade da composição descrita por Heckbert (objeto \(\rightarrow\) tela) \cite[p.~2]{heckbert1986}. As três matrizes são calculadas uma vez por quadro na CPU (\texttt{updateUniformBuffer}) e lidas do Uniform Buffer. O UV não é alterado aqui: o vertex shader da implementação apenas o repassa (\texttt{fragUV = inUV}), porque as transformações não lineares precisam ser feitas por fragmento (ver Seção~\ref{sec:onda}).
 
-Uma forma simples é:
+\section{Interpolação baricêntrica com correção de perspectiva}
+
+\textbf{Onde:} rasterizador (estágio fixo, não programável). \textbf{Quando:} uma vez por fragmento.
+
+Para um ponto dentro de um triângulo, com coordenadas baricêntricas \(\alpha+\beta+\gamma=1\), a interpolação linear seria:
 
 \begin{equation}
-u'=u+s_ut,\qquad v'=v+s_vt,
+UV=\alpha\, UV_0+\beta\, UV_1+\gamma\, UV_2.
+\label{eq:baricentrica}
 \end{equation}
 
-em que \(s_u\) e \(s_v\) representam velocidades de deslocamento.
+Heckbert mostra, porém, que interpolar \(u\) e \(v\) linearmente no espaço de tela ``nunca dá o efeito correto do encurtamento perspectivo'' e que o erro é evidente em animação. A forma correta exige uma divisão por pixel, \(u=(ax+by+c)/(gx+hy+i)\) \cite[p.~5]{heckbert1986}. As GPUs implementam uma forma equivalente, interpolando \(UV/w\) e \(1/w\) e dividindo um pelo outro, em que \(w\) é a coordenada homogênea de cada vértice após a Equação~\eqref{eq:mvp}:
+
+\begin{equation}
+UV=\frac{\alpha\,\dfrac{UV_0}{w_0}+\beta\,\dfrac{UV_1}{w_1}+\gamma\,\dfrac{UV_2}{w_2}}
+{\dfrac{\alpha}{w_0}+\dfrac{\beta}{w_1}+\dfrac{\gamma}{w_2}}.
+\label{eq:perspectiva}
+\end{equation}
+
+No Vulkan, esse é o comportamento padrão de toda variável \texttt{out} do vertex shader, a menos que ela seja declarada \texttt{noperspective}. É por isso que \texttt{fragUV} chega ao fragment shader já correto, sem nenhum código adicional.
+
+\section{Translação dependente do tempo}
+
+\textbf{Onde:} fragment shader, função \texttt{dynamicUV}. \textbf{Quando:} uma vez por fragmento, nos modos~2 e~4.
+
+\begin{equation}
+u'=u+s_u\,t,\qquad v'=v+s_v\,t.
+\label{eq:translacao}
+\end{equation}
+
+\(s_u\) e \(s_v\) são velocidades em ``texturas por segundo'' e \(t\) é o tempo em segundos. Na implementação, \(s_u=0{,}10\) e \(s_v=0\) (\texttt{uv.x += time * 0.10}): a textura atravessa a superfície inteira a cada 10 segundos. O valor de \(t\) é medido na CPU com \texttt{std::chrono} e enviado no campo \texttt{time} do Uniform Buffer. É a única entrada que muda de um quadro para outro. Por ser linear, essa operação poderia ser feita no vertex shader com o mesmo resultado, já que a Equação~\eqref{eq:perspectiva} preserva combinações lineares.
+
+\section{Ondulação (deformação não linear)}
+\label{sec:onda}
+
+\textbf{Onde:} fragment shader, função \texttt{dynamicUV}. \textbf{Quando:} uma vez por fragmento, nos modos~2 e~4.
+
+\begin{equation}
+u'' = u' + A\sin(k\,v + \omega_u t),\qquad
+v'' = v + A\cos(k\,u'' + \omega_v t).
+\label{eq:onda}
+\end{equation}
+
+Com \(A=0{,}015\), \(k=12\), \(\omega_u=2\) e \(\omega_v=1{,}5\), cada região da superfície recebe um deslocamento diferente, o que dá a impressão de líquido. Diferentemente da translação, esta equação não pode ir para o vertex shader: avaliada só nos vértices e depois interpolada, a senoide seria aproximada por segmentos de reta entre vértices, e o resultado dependeria da densidade da malha.
+
+\section{Repetição da textura (endereçamento REPEAT)}
+
+\textbf{Onde:} unidade de amostragem (sampler), em hardware. \textbf{Quando:} a cada leitura de textura.
+
+\begin{equation}
+u_{\text{final}} = u'' - \lfloor u'' \rfloor,\qquad
+v_{\text{final}} = v'' - \lfloor v'' \rfloor.
+\label{eq:repeat}
+\end{equation}
+
+Como \(u' = u + 0{,}10\,t\) cresce sem limite, a coordenada precisa ``dar a volta'' para continuar dentro da textura. Isso não é feito no shader: é configurado no sampler com \texttt{VK\_SAMPLER\_ADDRESS\_MODE\_REPEAT} (\texttt{createTextureSampler} em \texttt{VulkanApp.cpp}). Sem esse modo, a leitura ficaria presa à borda da textura assim que \(u'\) passasse de 1.
 
 \section{Escala}
 
-A escala pode ser definida por:
+\textbf{Onde:} fragment shader. \textbf{Quando:} uma vez por fragmento, nos modos~3, 4 e~5.
 
 \begin{equation}
-u'=s_u u,\qquad v'=s_v v.
+u'=k\,u,\qquad v'=k\,v.
+\label{eq:escala}
 \end{equation}
 
-Valores maiores que \(1\) aumentam a frequência aparente da textura, enquanto valores menores reduzem sua frequência.
+O fator de escala \(k\) é adimensional: valores \(k>1\) repetem a textura ou o padrão \(k\) vezes ao longo da superfície. Combinada com a Equação~\eqref{eq:repeat} (ou com a função \texttt{fract} do GLSL), a escala gera ladrilhamento. Na implementação, ela aparece em \texttt{fract(uv * 8.0)}, que cria a grade \(8\times8\) do padrão procedural, e em \texttt{uv * 10.0}, que cria a grade de depuração \(10\times10\) do modo~5.
 
 \section{Rotação}
 
-Considerando uma rotação em torno da origem do espaço UV:
+\textbf{Onde:} fragment shader ou vertex shader (por ser linear). \textbf{Quando:} uma vez por fragmento ou por vértice.
 
 \begin{equation}
-u'=u\cos\theta-v\sin\theta,
+\begin{pmatrix}u'\\v'\end{pmatrix}=
+\begin{pmatrix}\cos\theta & -\sin\theta\\ \sin\theta & \cos\theta\end{pmatrix}
+\begin{pmatrix}u-c_u\\v-c_v\end{pmatrix}+
+\begin{pmatrix}c_u\\c_v\end{pmatrix}.
+\label{eq:rotacao}
 \end{equation}
+
+O ponto \((c_u,c_v)\) é o centro da rotação, normalmente \((0{,}5;\,0{,}5)\), para girar a textura em torno do seu centro e não do canto. A implementação não usa rotação. Ela entraria em efeitos como um redemoinho ou um ventilador. Se \(\theta\) for igual para toda a superfície, \(\cos\theta\) e \(\sin\theta\) devem ser calculados uma única vez na CPU e enviados prontos, evitando duas funções trigonométricas por fragmento.
+
+\section{Transformação combinada em coordenadas homogêneas}
+
+\textbf{Onde:} montada na CPU; aplicada no vertex shader ou no fragment shader. \textbf{Quando:} montada uma vez por quadro.
 
 \begin{equation}
-v'=u\sin\theta+v\cos\theta.
+\begin{pmatrix}u'\\v'\\1\end{pmatrix}=
+\underbrace{T(\mathbf{s}\,t)\;R(\theta)\;S(k)}_{M_{UV}}
+\begin{pmatrix}u\\v\\1\end{pmatrix}.
+\label{eq:combinada}
 \end{equation}
 
-O parâmetro \(\theta\) representa o ângulo de rotação.
+Usando uma matriz \(3\times3\), translação, rotação e escala viram um único produto matriz-vetor. Esta é a forma mais econômica de aplicar várias transformações lineares: a CPU multiplica as três matrizes uma vez por quadro e o shader faz uma única multiplicação, independentemente de quantas operações foram combinadas.
 
-\section{Transformação combinada}
+\section{Função procedural}
 
-As operações podem ser representadas matricialmente:
+\textbf{Onde:} fragment shader, função \texttt{proceduralPattern}. \textbf{Quando:} uma vez por fragmento, nos modos~3 e~4.
+
+A forma geral é \(C=f(UV,t)\). Na implementação, o UV é primeiro deslocado e distorcido, com \(u \mathrel{+}= 0{,}40\,t\), \(v \mathrel{+}= 0{,}10\sin(1{,}2\,t)\) e uma ondulação de amplitude \(0{,}08\) do mesmo tipo da Equação~\eqref{eq:onda}. Sobre esse UV, \(f\) é uma soma de três ondas planas:
 
 \begin{equation}
-P'=M P,
+e = \frac{1}{2}+\frac{1}{6}\sum_{i=1}^{3}\sin\!\left(\mathbf{k}_i\cdot UV + \omega_i t\right),
+\qquad
+\begin{aligned}
+\mathbf{k}_1&=(20,8), &\omega_1&=4,\\
+\mathbf{k}_2&=(-6,24), &\omega_2&=-3,\\
+\mathbf{k}_3&=(18,18), &\omega_3&=2.
+\end{aligned}
+\label{eq:procedural}
 \end{equation}
 
-onde \(P=(u,v)^T\) é o ponto original e \(M\) representa a transformação escolhida.
-
-\section{Interpolação}
-
-Para um triângulo, as coordenadas UV dos fragmentos podem ser obtidas por interpolação baricêntrica:
+A soma de três senoides vai de \(-3\) a \(3\). Dividir por 3 e aplicar \(x\cdot0{,}5+0{,}5\) normaliza a ``energia'' \(e\) para o intervalo \([0,1]\). Essa normalização é necessária porque \(e\) é usada como peso nas misturas de cor seguintes. A cor final é obtida por interpolação entre uma paleta fixa:
 
 \begin{equation}
-UV=\alpha UV_0+\beta UV_1+\gamma UV_2,
+C = \operatorname{mix}(c_0, c_1, e),\qquad
+\operatorname{mix}(a,b,x)=a(1-x)+b\,x,
+\label{eq:mix}
 \end{equation}
 
-com:
+seguida de duas outras misturas controladas por \(\operatorname{smoothstep}\), que acendem o ciano e o branco apenas nas regiões de maior energia. Por fim, as linhas de uma grade \(8\times8\) (\texttt{fract(uv * 8.0)}) escurecem levemente a cor (25\% de mistura com a própria cor reduzida a 35\%), e um brilho proporcional a \(e^3\) é somado aos canais verde e azul. Os vetores \(\mathbf{k}_i\) definem a direção e a frequência de cada onda, e \(\omega_i\) a velocidade com que ela percorre a superfície.
+
+\section{Seleção do nível de mipmap}
+
+\textbf{Onde:} unidade de amostragem (sampler), em hardware. \textbf{Quando:} a cada leitura de textura.
+
+Quando a textura é reduzida na tela, um pixel cobre vários texels. Heckbert chama a região coberta de pré-imagem do pixel, um quadrilátero curvilíneo no espaço de textura \cite[p.~7]{heckbert1986}, e observa que o sistema precisa das derivadas parciais de \(u\) e \(v\) em relação a \(x\) e \(y\) da tela, que podem ser aproximadas pela diferença entre pixels vizinhos \cite[p.~11]{heckbert1986}. A GPU usa essas derivadas para escolher o nível de detalhe \(\lambda\):
 
 \begin{equation}
-\alpha+\beta+\gamma=1.
+\lambda=\log_2\!\left(\max\!\left(
+\left\lVert \frac{\partial (u,v)}{\partial x}\right\rVert,\;
+\left\lVert \frac{\partial (u,v)}{\partial y}\right\rVert
+\right)\cdot N\right),
+\label{eq:lod}
 \end{equation}
 
-Assim, os atributos dos vértices são utilizados para obter valores correspondentes em cada fragmento.
+em que \(N\) é a resolução da textura. Com \(\lambda=0\) lê-se a imagem original, com \(\lambda=1\) a imagem reduzida à metade, e assim por diante. Na interpolação trilinear, a GPU lê os dois níveis vizinhos de \(\lambda\) e interpola entre eles, o filtro que Heckbert recomenda como mínimo \cite[p.~11]{heckbert1986}. Na implementação atual, a textura é criada com \texttt{mipLevels = 1}: existe só o nível 0, e a Equação~\eqref{eq:lod} não tem efeito. Essa limitação é discutida no Capítulo~\ref{chap:vulkan}.
 
-\section{Mapeamento procedural}
+\section{Iluminação difusa}
 
-Uma formulação geral é:
+\textbf{Onde:} fragment shader. \textbf{Quando:} uma vez por fragmento, nos modos~1, 2, 4 (parte texturizada) e~5.
 
 \begin{equation}
-UV'=f(P,t),
+L = 0{,}35 + 0{,}65\,\max(\hat{\mathbf{n}}\cdot\hat{\mathbf{l}},\,0),
+\qquad C_{\text{final}} = C\cdot L.
+\label{eq:lambert}
 \end{equation}
 
-ou, quando o objetivo é produzir diretamente a cor:
+No modo~3, o padrão procedural usa uma variante mais clara, \(0{,}55 + 0{,}45\max(\hat{\mathbf{n}}\cdot\hat{\mathbf{l}},0)\), para parecer que emite luz própria. No modo~4, as ondas procedurais são misturadas por cima da textura já iluminada, sem nova iluminação.
 
-\begin{equation}
-C=f(P,t).
-\end{equation}
+A normal \(\hat{\mathbf{n}}\) é interpolada pelo rasterizador e precisa ser renormalizada (\texttt{normalize(fragNormal)}), porque a interpolação de vetores unitários não produz vetores unitários. O termo constante \(0{,}35\) é uma luz ambiente que evita que o lado oposto à luz fique completamente preto. A iluminação não faz parte do UV mapping, mas é aplicada por último sobre a cor obtida pela textura ou pela função procedural, para que o volume do modelo continue legível.
 
-Essas expressões representam a ideia de que o resultado pode ser calculado a partir da posição espacial e, opcionalmente, do tempo.
+\section{Resumo: equação, estágio e frequência}
 
-\section{Relação com o pipeline}
-
-O fluxo conceitual pode ser resumido como:
-
-\begin{center}
-\begin{tabular}{c}
-\textit{Coordenadas UV}
-$\rightarrow$
-\textit{Transformação}
-$\rightarrow$
-\textit{Interpolação}
-\\[0.2cm]
-$\rightarrow$
-\textit{Fragment Shader}
-$\rightarrow$
-\textit{Sampling}
-$\rightarrow$
-\textit{Cor final}
+\begin{table}[H]
+\centering
+\caption{Em que estágio cada equação é executada e quantas vezes por quadro (janela de \(800\times600\), modelo com 2.399 vértices).}
+\label{tab:equacoes-estagios}
+\small
+\begin{tabular}{p{3.6cm}p{3.4cm}p{3.1cm}p{3.6cm}}
+\toprule
+\textbf{Equação} & \textbf{Estágio} & \textbf{Vezes por quadro} & \textbf{Na implementação} \\
+\midrule
+\eqref{eq:uv} UV do vértice & Vertex Input & 2.399 a 12.636 & \texttt{inUV} (location 2) \\
+\eqref{eq:mvp} Posição & Vertex Shader & 2.399 a 12.636 & \texttt{gl\_Position} \\
+\eqref{eq:perspectiva} Interpolação & Rasterizador & até 480.000 & automático \\
+\eqref{eq:translacao} Translação & Fragment Shader & até 480.000 & \texttt{dynamicUV} \\
+\eqref{eq:onda} Ondulação & Fragment Shader & até 480.000 & \texttt{dynamicUV} \\
+\eqref{eq:repeat} Repetição & Sampler & por amostra & \texttt{ADDRESS\_MODE\_REPEAT} \\
+\eqref{eq:escala} Escala & Fragment Shader & até 480.000 & \texttt{fract(uv * 8.0)} \\
+\eqref{eq:rotacao} Rotação & CPU + shader & 1 + por vértice & não usada \\
+\eqref{eq:combinada} Combinada & CPU + shader & 1 + por vértice & não usada \\
+\eqref{eq:procedural} Procedural & Fragment Shader & até 480.000 & \texttt{proceduralPattern} \\
+\eqref{eq:lod} Nível de mipmap & Sampler & por amostra & sem efeito (1 nível) \\
+\eqref{eq:lambert} Iluminação & Fragment Shader & até 480.000 & \texttt{main} \\
+\bottomrule
 \end{tabular}
-\end{center}
+\end{table}
+
+Os vértices são 2.399, mas são referenciados por 12.636 índices. Como a GPU reaproveita o resultado de vértices repetidos (\textit{post-transform cache}), o vertex shader roda entre 2.399 e 12.636 vezes por quadro. ``Até 480.000'' é o número de pixels da janela. O número real de fragmentos depende de quanto da tela o modelo cobre e da sobreposição de triângulos.

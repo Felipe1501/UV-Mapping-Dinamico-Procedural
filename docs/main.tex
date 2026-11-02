@@ -3,7 +3,7 @@
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage[brazil]{babel}
+\usepackage[brazilian]{babel}
 \usepackage{lmodern}
 
 \usepackage{geometry}
@@ -16,6 +16,9 @@
 \usepackage{array}
 \usepackage{enumitem}
 
+\usepackage[backend=biber,style=abnt-numeric]{biblatex}
+\addbibresource{referencias.bib}
+\usepackage{xcolor}
 \usepackage{hyperref}
 \usepackage{xurl}
 \usepackage{caption}
@@ -23,6 +26,7 @@
 \usepackage{fancyhdr}
 \usepackage{ragged2e}
 \usepackage{microtype}
+\usepackage{titlesec}
 
 
 \geometry{
@@ -36,7 +40,7 @@
 
 % Configuração dos parágrafos
 \setlength{\parindent}{0cm}
-\setlength{\parskip}{0.3cm}
+\setlength{\parskip}{0.2cm}
 
 % Evita problemas com linhas muito longas
 \emergencystretch=3em
@@ -54,6 +58,21 @@
 }
 
 
+% Títulos compactos: o número e o nome do capítulo na mesma linha
+\titleformat{\chapter}[hang]{\normalfont\LARGE\bfseries}{\thechapter}{0.8em}{}
+\titlespacing*{\chapter}{0pt}{-20pt}{14pt}
+\titlespacing*{\section}{0pt}{12pt}{4pt}
+\titlespacing*{\subsection}{0pt}{10pt}{2pt}
+
+% Listas e legendas mais compactas
+\setlist{itemsep=2pt, topsep=4pt, parsep=0pt}
+\captionsetup{font=small}
+
+% Sumário só com capítulos e seções
+\setcounter{tocdepth}{1}
+
+\setlength{\headheight}{15pt}
+
 \pagestyle{fancy}
 
 \fancyhf{}
@@ -65,19 +84,6 @@
 
 \AtBeginDocument{
     \justifying
-}
-
-
-\newcommand{\placeholder}[2][5cm]{%
-    \begin{figure}[H]
-        \centering
-        \fbox{
-            \parbox[c][#1][c]{0.82\textwidth}{
-                \centering
-                #2
-            }
-        }
-    \end{figure}
 }
 
 
@@ -108,6 +114,8 @@
 
     \begin{flushleft}
 
+    \textbf{Grupo:} MIA\\[0.4cm]
+
     \textbf{Integrantes:}\\[0.2cm]
 
     Arthur Almeida Lima - 3093901\\
@@ -133,179 +141,78 @@
 
 
 \chapter{Introdução}
-
+\label{chap:introducao}
 \input{capitulos/introducao}
 
-
 \chapter{Fundamentação teórica}
-
+\label{chap:fundamentacao}
 \input{capitulos/fundamentacao}
 
-
 \chapter{Equações e funcionamento matemático}
-
+\label{chap:equacoes}
 \input{capitulos/equacoes}
 
-
-\chapter{Relação com Vulkan}
-
+\chapter{Relação com o Vulkan e arquitetura do pipeline}
+\label{chap:vulkan}
 \input{capitulos/vulkan}
 
-
-\chapter{Arquitetura do Pipeline Vulkan}
-
-\input{capitulos/arquitetura_vulkan}
-
-\chapter{Pseudocódigo dos Shaders}
-
+\chapter{Shaders: pseudocódigo e implementação}
+\label{chap:shaders}
 \input{capitulos/shaders}
 
 \chapter{Aplicações práticas}
-
+\label{chap:aplicacoes}
 \input{capitulos/aplicacoes}
 
-
-\chapter{Utilização em jogos}
-
+\chapter{Análise em jogos}
+\label{chap:jogos}
 \input{capitulos/jogos}
 
-\chapter{Capturas de gameplay}
-
-\input{capitulos/capturas}
-
-
-\chapter{Vídeos de demonstração}
-
-\input{capitulos/videos}
-
-
 \chapter{Resumo das publicações utilizadas}
-
+\label{chap:resumos}
 \input{capitulos/resumos_artigos}
 
-
 \chapter{Conclusão}
-
+\label{chap:conclusao}
 \input{capitulos/conclusao}
 
 
-\begin{thebibliography}{99}
-
-\bibitem{heckbert1986}
-
-HECKBERT, P. S.
-
-\textit{Survey of Texture Mapping}.
-
-IEEE Computer Graphics and Applications, v. 6, n. 11, p. 56--67, 1986.
-
-DOI:
-\url{https://doi.org/10.1109/MCG.1986.276672}.
-
-\bibitem{dong2020}
-
-DONG, J.; LIU, J.; YAO, K.; CHANTLER, M.; QI, L.; YU, H.; JIAN, M.
-
-\textit{Survey of Procedural Methods for Two-Dimensional Texture Generation}.
-
-Sensors, v. 20, n. 4, 1135, 2020.
-
-DOI:
-\url{https://doi.org/10.3390/s20041135}.
-
-\bibitem{smelik2014}
-
-SMELIK, R. M.; TUTENEL, T.; BIDARRA, R.; BENES, B.
-
-\textit{A Survey on Procedural Modelling for Virtual Worlds}.
-
-Computer Graphics Forum, v. 33, n. 6, p. 31--50, 2014.
-
-DOI:
-\url{https://doi.org/10.1111/cgf.12276}.
-
-\bibitem{ebert2002}
-
-EBERT, D. S. et al.
-
-\textit{Texturing and Modeling: A Procedural Approach}.
-
-3. ed. San Francisco: Morgan Kaufmann, 2002.
-
-\bibitem{vulkan}
-
-KHRONOS GROUP.
-
-\textit{Vulkan Documentation: Image View and Sampler}.
-
-Disponível em:
-\url{https://docs.vulkan.org/tutorial/latest/06_Texture_mapping/01_Image_view_and_sampler.html}.
-
-Acesso em: 2026.
-
-\bibitem{substance}
-
-SUBSTANCE 3D.
-
-\textit{Between Modeling and Texturing: Substance Designer in Rocket League}.
-
-Disponível em:
-\url{https://substance3d.adobe.com/}.
-
-Acesso em: 2026.
-
-\bibitem{insomniac}
-
-INSOMNIAC GAMES.
-
-\textit{What is different in Marvel's Spider-Man Remastered from the original game?}.
-
-2025.
-
-\end{thebibliography}
+\printbibliography[heading=bibintoc,title={Referências}]
 
 \appendix
 
-\chapter{Checklist da entrega}
+\chapter{Checklist das entregas}
 
+\textbf{Entrega 1 -- Revisão bibliográfica}
 \begin{itemize}
+    \item[$\boxtimes$] Definição, funcionamento, problema resolvido, vantagens, limitações, custo e quando usar (Capítulo~\ref{chap:fundamentacao}).
+    \item[$\boxtimes$] Três publicações científicas citadas ao longo do texto, com um resumo de cada (Capítulo~\ref{chap:resumos} e \texttt{resumos/}).
+    \item[$\boxtimes$] Equações com variáveis, finalidade, momento de uso e relação com a renderização (Capítulo~\ref{chap:equacoes}).
+    \item[$\boxtimes$] Relação com o Vulkan: shaders, estágios, buffers, texturas, attachments, fluxo de dados e otimizações (Capítulo~\ref{chap:vulkan}).
+    \item[$\boxtimes$] Sete aplicações reais, com onde a técnica é usada e o benefício (Capítulo~\ref{chap:aplicacoes}).
+    \item[$\boxtimes$] Dois jogos, com plataforma, situação, momento, elemento, efeito, benefício e fonte técnica (Capítulo~\ref{chap:jogos}).
+    \item[$\boxtimes$] Capturas próprias marcadas, com legenda e texto da cena (Capítulo~\ref{chap:jogos}).
+    \item[$\boxtimes$] Links das lives de gameplay do grupo no PDF e em \texttt{videos.txt}; demonstração do UV dinâmico em funcionamento na implementação (Figura~\ref{fig:app-uv-dinamico}).
+\end{itemize}
 
-    \item[$\square$] PDF final compilado.
+\textbf{Entrega 2 -- Arquitetura do pipeline Vulkan}
+\begin{itemize}
+    \item[$\boxtimes$] Diagrama com legenda de cores e setas, e arquivo-fonte \texttt{diagrama/pipeline\_vulkan.dot} (Figura~\ref{fig:pipeline-vulkan}).
+    \item[$\boxtimes$] Fluxo de dados, com entradas e saídas de cada estágio (Tabela~\ref{tab:estagios}).
+    \item[$\boxtimes$] Render Pass, Subpass e attachments; descriptor sets e bindings; layout e finalidade dos buffers (Capítulo~\ref{chap:vulkan}).
+    \item[$\boxtimes$] Barreiras de memória e dependência do subpass com todos os campos, transições de layout e dependências entre CPU e GPU (Tabelas~\ref{tab:image-barrier} e~\ref{tab:subpass-dep}).
+    \item[$\boxtimes$] Justificativa das decisões arquiteturais (Capítulo~\ref{chap:vulkan}).
+\end{itemize}
 
-    \item[$\square$] Arquivos \LaTeX{}.
+\textbf{Entrega 3 -- Shaders}
+\begin{itemize}
+    \item[$\boxtimes$] Pseudocódigo original em \texttt{pseudocodigo/uv\_mapping.vert} e \texttt{.frag}; shaders finais comentados no Capítulo~\ref{chap:shaders}.
+    \item[$\boxtimes$] Objetivo, fluxo, entradas e saídas, equações, condições, amostragem, tratamento de limites e resultado esperado (Capítulo~\ref{chap:shaders}).
+\end{itemize}
 
-    \item[$\square$] Pelo menos três publicações científicas/técnicas.
-
-    \item[$\square$] Um resumo de cada publicação.
-
-    \item[$\square$] Pelo menos duas aplicações práticas.
-
-    \item[$\square$] Pelo menos dois jogos.
-
-    \item[$\square$] Uma captura própria para cada jogo.
-
-    \item[$\square$] Vídeo de demonstração quando a captura não for suficiente.
-
-    \item[$\square$] Artigos consultados incluídos no ZIP.
-
-    \item[$\square$] Diagrama da arquitetura do pipeline Vulkan.
-
-    \item[$\square$] Arquivo-fonte do diagrama incluído no projeto.
-
-    \item[$\square$] Explicação dos Render Passes e Subpasses.
-
-    \item[$\square$] Descrição dos Descriptor Sets e Bindings.
-
-    \item[$\square$] Descrição dos buffers e suas finalidades.
-
-    \item[$\square$] Descrição dos shaders envolvidos.
-
-    \item[$\square$] Barreiras de memória e sincronizações.
-
-    \item[$\square$] Transições de Image Layout.
-
-    \item[$\square$] Dependências de execução.
-
+\textbf{Entrega 4 -- Código}
+\begin{itemize}
+    \item[$\boxtimes$] Aplicação Vulkan em C++ com shaders em SPIR-V, instruções de compilação e evidências de execução (\texttt{código/} e seu \texttt{README.md}).
 \end{itemize}
 
 \end{document}

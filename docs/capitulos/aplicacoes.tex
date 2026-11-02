@@ -1,18 +1,62 @@
 
-\section{Superfícies de água e materiais móveis}
+Este capítulo apresenta produtos comerciais e ferramentas em uso na indústria que implementam UV mapping dinâmico ou mapeamento procedural, indicando para cada um o recurso específico, a equação correspondente no Capítulo~\ref{chap:equacoes} e a fonte que comprova o uso.
 
-Uma aplicação prática do UV mapping dinâmico é a animação de superfícies que precisam transmitir sensação de movimento. Uma textura pode ser deslocada continuamente para simular o fluxo de água ou outros materiais.
+\section{Motores de jogo: UV dinâmico como recurso de material}
 
-A captura de uma única imagem pode mostrar a aparência da superfície, mas não demonstra completamente o movimento. Nesse caso, um vídeo de demonstração é uma evidência complementar mais adequada.
+\subsection{Unreal Engine: nó \textit{Panner}}
 
-\section{Terrenos e ambientes virtuais}
+No editor de materiais da Unreal Engine, o nó \textit{Panner} gera coordenadas UV que mudam de acordo com a entrada de tempo \cite{unrealpanner}. Ele recebe as coordenadas originais e uma entrada de tempo, e tem duas propriedades de velocidade, \textit{Speed X} e \textit{Speed Y}, uma para cada direção. É exatamente a Equação~\eqref{eq:translacao} (\(u'=u+s_u t\), \(v'=v+s_v t\)), empacotada como um bloco visual para artistas. A documentação oficial apresenta o nó como a forma de criar texturas ``em deslocamento, ou em movimento'' \cite{unrealpanner}. O Rocket League é desenvolvido sobre a Unreal Engine~3 \cite{substance}.
 
-Terrenos podem utilizar texturas repetíveis e procedimentos para gerar variações de aparência. Métodos procedurais também são aplicados à geração de elementos de mundos virtuais. Smelik et al. \cite{smelik2014} discutem aplicações procedurais em terrenos, vegetação, rios, estradas, edifícios e cidades.
+\subsection{Unity: nó \textit{Tiling And Offset} do Shader Graph}
 
-\section{Materiais procedurais}
+No Shader Graph da Unity, o nó \textit{Tiling And Offset} aplica à coordenada de entrada a operação \texttt{Out = UV * Tiling + Offset} \cite{unitytiling}, que combina a escala (Equação~\eqref{eq:escala}) e a translação (Equação~\eqref{eq:translacao}). Segundo a documentação, o nó é ``comumente usado para mapas de detalhe e para rolar texturas ao longo do tempo'' \cite{unitytiling}: basta ligar a saída de um nó de tempo à entrada \textit{Offset}.
 
-Materiais como pedra, madeira, metal ou superfícies com padrões repetitivos podem ser produzidos por funções procedurais. Dong et al. \cite{dong2020} revisam métodos de geração procedural de texturas bidimensionais, mostrando a relevância de modelos matemáticos para produzir diferentes aparências.
+\section{Ferramentas de autoria de texturas procedurais}
 
-\section{Efeitos visuais}
+\subsection{Adobe Substance 3D Designer}
 
-A combinação de transformação UV com tempo permite produzir efeitos de energia, lava, brilho, movimento de padrões e outros efeitos. A vantagem é que a animação pode ser obtida modificando os parâmetros de renderização, sem necessariamente alterar a geometria do objeto.
+O Substance Designer é um editor de texturas procedurais baseado em grafos de nós. Smelik et al.\ o citam entre os editores visuais por nós de uso disseminado em sistemas comerciais \cite[p.~14]{smelik2014}. O uso em produção está documentado em uma entrevista com Eric Majka, um dos artistas líderes da Psyonix: todos os mapas recentes do Rocket League foram texturizados inteiramente no Designer, com \textit{trim textures} (texturas em faixas reaproveitadas por várias peças) divididas em quartos para facilitar o UV mapping feito pelos modeladores. Os padrões da banda de rodagem dos pneus e os mapas de altura dos aros também são gerados nele \cite{substance}. A ferramenta é procedural na autoria: o artista edita parâmetros e o grafo gera as imagens finais, que o jogo usa como texturas comuns.
+
+\subsection{Blender: nós \textit{Mapping}, \textit{Noise Texture} e \textit{Voronoi Texture}}
+
+O Blender, software livre de modelagem e renderização, oferece os dois lados da técnica como nós de material. O nó \textit{Mapping} ``transforma o vetor de entrada aplicando translação, rotação e escala'' \cite{blendermapping}, a mesma transformação combinada da Equação~\eqref{eq:combinada}. Com um valor animado na translação, ele produz UV dinâmico. Os nós \textit{Noise Texture} e \textit{Voronoi Texture} avaliam, respectivamente, um ruído de Perlin fractal e um ruído de Worley ``nas coordenadas de textura de entrada'' \cite{blendernoise,blendervoronoi}. Na classificação de Dong et al., o primeiro é um ruído de gradiente em grade (método não estruturado, domínio espacial) e o segundo uma textura celular (método estruturado) \cite[pp.~10, 16]{dong2020}.
+
+\section{Modelagem procedural de mundos virtuais}
+
+Smelik et al.\ dedicam uma seção do levantamento aos sistemas disponíveis comercialmente, para mostrar ``como os resultados de pesquisa já estão sendo aplicados na indústria'' \cite[p.~10]{smelik2014}. Os três seguintes estão entre os citados.
+
+\subsection{SpeedTree}
+
+O SpeedTree é um \textit{middleware} para modelagem e renderização de grandes quantidades de vegetação procedural, com ``ampla aplicação nas indústrias de jogos e de cinema'' \cite[p.~11]{smelik2014}. O fabricante o descreve como o conjunto de ferramentas de vegetação padrão da indústria, que combina geradores procedurais com edição manual \cite{speedtree}. Segundo Smelik et al., o próprio motor do SpeedTree anima a vegetação e gerencia o nível de detalhe na renderização \cite[p.~11]{smelik2014}.
+
+\subsection{Esri ArcGIS CityEngine}
+
+O CityEngine é um gerador de cidades baseado em gramáticas CGA \cite[p.~12]{smelik2014}. Na documentação oficial, a modelagem é ``descrita de forma abstrata, em um arquivo de regras'', que refina iterativamente as formas até gerar os edifícios \cite{cityengine}. O produto faz parte da plataforma ArcGIS, de geoprocessamento, e é voltado à geração de cidades e quarteirões inteiros em 3D. Uma regra CGA típica divide a fachada em andares e janelas que se repetem, o que, na textura, corresponde ao ladrilhamento por escala de UV da Equação~\eqref{eq:escala}.
+
+\subsection{SideFX Houdini}
+
+O Houdini permite que designers criem geradores procedurais a partir de pequenos blocos de construção \cite[p.~12]{smelik2014}. Os autores ressaltam, porém, que o uso eficaz exige conhecimento avançado de como projetar esses procedimentos, um exemplo concreto da limitação de controle discutida no Capítulo~\ref{chap:fundamentacao}.
+
+\section{Resumo}
+
+\begin{table}[H]
+\centering
+\caption{Produtos analisados e sua relação com a técnica.}
+\label{tab:aplicacoes}
+\small
+\begin{tabular}{p{3.0cm}p{3.6cm}p{4.0cm}p{3.4cm}}
+\toprule
+\textbf{Produto} & \textbf{Recurso} & \textbf{Técnica} & \textbf{Fonte} \\
+\midrule
+Unreal Engine & Nó \textit{Panner} & UV dinâmico, Eq.~\eqref{eq:translacao} & \cite{unrealpanner} \\
+Unity & Nó \textit{Tiling And Offset} & UV dinâmico, Eqs.~\eqref{eq:translacao}~e~\eqref{eq:escala} & \cite{unitytiling} \\
+Substance 3D Designer & Grafo de textura procedural & Procedural na autoria (Rocket League) & \cite{substance}, \cite[p.~14]{smelik2014} \\
+Blender & \textit{Mapping}, \textit{Noise}, \textit{Voronoi} & UV dinâmico e procedural, Eq.~\eqref{eq:combinada} & \cite{blendermapping,blendernoise,blendervoronoi} \\
+SpeedTree & Vegetação procedural & Modelagem procedural e LOD & \cite{speedtree}, \cite[p.~11]{smelik2014} \\
+CityEngine & Regras CGA & Modelagem procedural, fachadas por repetição & \cite{cityengine}, \cite[p.~12]{smelik2014} \\
+Houdini & Geradores por nós & Modelagem procedural & \cite[p.~12]{smelik2014} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Os produtos se dividem em dois grupos. Nos motores de jogo (Unreal, Unity), a técnica é executada em tempo real, a cada quadro, no shader. Nas ferramentas de autoria (Substance, SpeedTree, CityEngine, Houdini), o procedural é usado durante a produção e o resultado é gravado como texturas e malhas comuns. Essa divisão segue o argumento de custo do Capítulo~\ref{chap:fundamentacao}: o que é barato o suficiente roda no shader, e o que é caro ou difícil de controlar é gerado antes.

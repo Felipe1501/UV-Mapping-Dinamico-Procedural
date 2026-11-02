@@ -1,32 +1,59 @@
 
-Esta seção atende ao requisito de apresentar um resumo de cada uma das publicações científicas ou técnicas utilizadas.
+As versões de Heckbert e de Smelik et al.\ incluídas na pasta \texttt{artigos/} são as versões dos autores (\textit{preprints}), cuja paginação difere da revista. As páginas citadas referem-se a essas versões, para que possam ser conferidas nos arquivos entregues. Os mesmos resumos estão em \texttt{resumos/}.
 
-\section{Publicação 1 -- Heckbert (1986)}
+\section{Heckbert (1986)}
 
-\textbf{Referência:} Heckbert, P. S. \textit{Survey of Texture Mapping}. IEEE Computer Graphics and Applications, 1986.
+\textbf{Título:} \textit{Survey of Texture Mapping}. \textbf{Autor:} Paul S. Heckbert. \textbf{Ano:} 1986 (IEEE Computer Graphics and Applications, v.~6, n.~11) \cite{heckbert1986}.
 
-O trabalho de Paul Heckbert apresenta uma visão geral dos fundamentos de texture mapping. O artigo explica que a técnica permite aumentar a riqueza visual de imagens renderizadas sem exigir que todos os detalhes sejam representados explicitamente por geometria. O autor organiza o problema em torno de dois aspectos principais: o mapeamento geométrico, que relaciona uma textura a uma superfície, e a filtragem, necessária para reduzir artefatos de aliasing.
+\textbf{Objetivo.} Organizar o conhecimento sobre texture mapping disponível até meados dos anos 1980, separando o problema em mapeamento geométrico e filtragem \cite[p.~1]{heckbert1986}.
 
-A publicação é importante para este trabalho porque fornece a fundamentação histórica e conceitual para o uso de coordenadas de textura. O conceito de espaço de textura, representado por \(u\) e \(v\), está diretamente relacionado ao UV mapping utilizado nas seções seguintes. A publicação também ajuda a compreender por que filtragem e amostragem são partes essenciais de uma implementação de textura.
+\textbf{Principais conceitos.}
+\begin{itemize}
+    \item O mapeamento como composição de uma parametrização da superfície com a projeção para a tela \cite[p.~2]{heckbert1986}.
+    \item Os parâmetros que podem ser mapeados (cor, normal, especular, transparência, deslocamento) \cite[p.~2]{heckbert1986}.
+    \item Os mapeamentos afim, bilinear e projetivo, e a interpolação correta em perspectiva, com uma divisão por pixel \cite[pp.~4--5]{heckbert1986}.
+    \item A taxonomia dos filtros (convolução direta, pré-filtragem e séries de Fourier) \cite[p.~7]{heckbert1986}, com uma tabela de custo e memória em que a pirâmide de mipmaps ocupa \(4/3\) da textura e a interpolação trilinear custa 8 acessos por pixel \cite[pp.~9--10]{heckbert1986}.
+\end{itemize}
 
-\section{Publicação 2 -- Dong et al. (2020)}
+\textbf{Relação com o tema.} É a base do UV mapping: define o espaço \((u,v)\), mostra como ele chega a cada pixel e quanto custa ler a textura corretamente. O UV dinâmico altera justamente a parametrização descrita pelo autor. O artigo é anterior às GPUs programáveis e não trata de UV animado.
 
-\textbf{Referência:} Dong, J. et al. \textit{Survey of Procedural Methods for Two-Dimensional Texture Generation}. Sensors, 2020.
+\textbf{Informações aproveitadas.} Composição do mapeamento e ordem de varredura (Cap.~\ref{chap:fundamentacao}); interpolação com correção de perspectiva e seleção de mipmap (Cap.~\ref{chap:equacoes}); aliasing, custo da filtragem trilinear e memória dos mipmaps (Caps.~\ref{chap:fundamentacao} e~\ref{chap:vulkan}).
 
-Dong et al. apresentam uma revisão dos métodos utilizados para geração procedural de texturas bidimensionais. O trabalho parte da importância das texturas para a representação de cenas realistas e discute a geração procedural como um processo baseado em modelos matemáticos.
+\section{Dong et al. (2020)}
 
-A publicação é especialmente relevante para o tema deste trabalho porque mostra que texturas podem ser produzidas por procedimentos e funções, em vez de depender exclusivamente de imagens previamente criadas. Isso fornece base para a seção sobre mapeamento procedural e para a formulação \(C=f(P,t)\), utilizada como representação simplificada de uma função que produz o resultado visual a partir de parâmetros espaciais e temporais.
+\textbf{Título:} \textit{Survey of Procedural Methods for Two-Dimensional Texture Generation}. \textbf{Autores:} Junyu Dong, Jun Liu, Kang Yao, Mike Chantler, Lin Qi, Hui Yu e Muwei Jian. \textbf{Ano:} 2020 (Sensors, v.~20, n.~4, 1135) \cite{dong2020}.
 
-\section{Publicação 3 -- Smelik et al. (2014)}
+\textbf{Objetivo.} Revisar e comparar, pela aparência que produzem, os métodos de geração procedural de texturas bidimensionais estáticas. Texturas sólidas, jogos e animação ficam explicitamente fora do escopo \cite[p.~2]{dong2020}.
 
-\textbf{Referência:} Smelik, R. M.; Tutenel, T.; Bidarra, R.; Benes, B. \textit{A Survey on Procedural Modelling for Virtual Worlds}. Computer Graphics Forum, 2014.
+\textbf{Principais conceitos.}
+\begin{itemize}
+    \item A definição de textura procedural como imagem criada por um modelo matemático \cite[p.~1]{dong2020}.
+    \item A classificação em métodos estruturados (autômatos celulares, reação-difusão, textons, Voronoi, texturas celulares), não estruturados (funções de ruído no domínio da frequência e no espacial, como Gabor e Perlin) e de pós-processamento \cite[pp.~3--4]{dong2020}.
+    \item Uma avaliação perceptual de 20 métodos, com 450 amostras e 40 participantes \cite[pp.~19--20]{dong2020}, resumida em uma tabela de aplicações típicas de cada método \cite[p.~22]{dong2020}.
+\end{itemize}
 
-Smelik et al. realizam uma revisão de métodos de modelagem procedural aplicados à construção de mundos virtuais. O trabalho aborda diferentes tipos de conteúdo, incluindo terrenos, vegetação, rios, estradas, edifícios e cidades. Entre as vantagens da abordagem estão a possibilidade de gerar grandes quantidades de conteúdo e reduzir a intervenção manual.
+\textbf{Relação com o tema.} Fundamenta o lado procedural da técnica: o que é uma textura gerada por função, quando ela é vantajosa (tamanho ilimitado, sem costuras, famílias de variações) e quais são seus problemas (controle de parâmetros, aliasing, dificuldade de reproduzir texturas reais) \cite[pp.~2, 13, 23]{dong2020}.
 
-Ao mesmo tempo, os autores destacam desafios relacionados ao controle do resultado e à interação do usuário com os métodos procedurais. Essa discussão é importante para este trabalho porque mostra que a proceduralidade não deve ser considerada apenas como uma forma de automatizar a geração: é necessário também permitir controle suficiente para que artistas e desenvolvedores obtenham o resultado desejado.
+\textbf{Informações aproveitadas.} Definição e taxonomia do procedural, critérios de quando usar e limitações (Cap.~\ref{chap:fundamentacao}); classificação dos nós procedurais do Blender (Cap.~\ref{chap:aplicacoes}); a ressalva de que o tempo relatado (menos de um segundo por imagem, em computador de mesa) mede a geração de uma imagem inteira, e não a avaliação por fragmento em tempo real \cite[p.~21]{dong2020}.
+
+\section{Smelik et al. (2014)}
+
+\textbf{Título:} \textit{A Survey on Procedural Modelling for Virtual Worlds}. \textbf{Autores:} Ruben M. Smelik, Tim Tutenel, Rafael Bidarra e Bedrich Benes. \textbf{Ano:} 2014 (Computer Graphics Forum, v.~33, n.~6) \cite{smelik2014}.
+
+\textbf{Objetivo.} Revisar os métodos de modelagem procedural para mundos virtuais e entender por que eles ainda são pouco adotados por profissionais criativos \cite[p.~1]{smelik2014}.
+
+\textbf{Principais conceitos.}
+\begin{itemize}
+    \item A amplificação de dados: poucos parâmetros geram grande variedade de conteúdo, inclusive sob demanda na GPU \cite[p.~1]{smelik2014}.
+    \item A organização dos métodos por tipo de conteúdo (terreno, vegetação, água, estradas, cidades, edifícios, interiores) e a avaliação de cada um por facilidade de uso, controle e família de técnica \cite[p.~2]{smelik2014}.
+    \item Uma seção sobre sistemas comerciais (Terragen, SpeedTree, CityEngine, Houdini) \cite[pp.~10--12]{smelik2014}.
+    \item Os dois obstáculos à adoção: a falta de controle intuitivo e a falta de integração entre métodos \cite[pp.~12--15]{smelik2014}.
+\end{itemize}
+
+\textbf{Relação com o tema.} Mostra o procedural em escala de mundo e o problema de controle que também afeta as texturas procedurais. O levantamento exclui a geração de texturas \cite[p.~2]{smelik2014}, por isso é usado para o contexto de produção e para os produtos reais, e não para a texturização em si.
+
+\textbf{Informações aproveitadas.} Amplificação de dados e custo da produção manual (quando usar), baixa controlabilidade e desempenho interativo (limitações e custo) (Cap.~\ref{chap:fundamentacao}); SpeedTree, CityEngine, Houdini e Substance Designer como produtos reais (Cap.~\ref{chap:aplicacoes}).
 
 \section{Relação entre as publicações}
 
-As três publicações complementam-se. Heckbert fornece a base para compreender o texture mapping e os problemas de mapeamento e filtragem. Dong et al. concentram-se na geração procedural de texturas bidimensionais. Smelik et al. ampliam a discussão procedural para a geração de conteúdo em mundos virtuais.
-
-Assim, a literatura utilizada cobre desde o fundamento do mapeamento de texturas até técnicas procedurais e suas aplicações em ambientes gráficos.
+As três publicações cobrem camadas diferentes do problema. Heckbert trata de como uma coordenada \((u,v)\) chega a um pixel e quanto custa ler a textura. Dong et al.\ tratam do conteúdo procedural da textura em si. Smelik et al.\ tratam do procedural em escala de mundo e do problema de controle que limita seu uso. Nenhuma delas trata diretamente do UV dinâmico em tempo real. Esse ponto é coberto pela implementação do grupo e pelas fontes técnicas dos motores e estúdios (Capítulos~\ref{chap:vulkan}, \ref{chap:aplicacoes} e~\ref{chap:jogos}).

@@ -1,493 +1,198 @@
-\section{Objetivo dos shaders}
 
-Os shaders apresentados nesta etapa descrevem a lógica necessária para
-implementar o efeito de UV Mapping Dinâmico e Procedural em uma arquitetura
-gráfica baseada em Vulkan. O pseudocódigo utiliza uma sintaxe semelhante à
-linguagem GLSL, porém não tem como objetivo ser compilado diretamente.
+\section{Objetivo de cada shader e fluxo entre eles}
 
-Foram utilizados dois shaders principais: um Vertex Shader, responsável pelo
-processamento dos vértices e pela preparação das coordenadas UV, e um
-Fragment Shader, responsável pela aplicação do deslocamento dinâmico, pela
-amostragem da textura, pelo cálculo procedural e pela produção da cor final.
-
-O fluxo geral pode ser representado por:
-
-\begin{center}
-\begin{tabular}{c}
-\textit{Vertex Buffer}
-$\rightarrow$
-\textit{Vertex Shader}
-\\[0.2cm]
-$\rightarrow$
-\textit{Rasterização e Interpolação}
-$\rightarrow$
-\textit{Fragment Shader}
-\\[0.2cm]
-$\rightarrow$
-\textit{Color Attachment}
-$\rightarrow$
-\textit{Framebuffer}
-\end{tabular}
-\end{center}
-
-
-\section{Vertex Shader}
-
-O Vertex Shader recebe os atributos associados aos vértices da malha. São
-utilizados a posição, a normal e as coordenadas UV. O shader também recebe
-por meio de um Uniform Buffer os parâmetros necessários para a transformação
-geométrica e para o comportamento dinâmico das coordenadas de textura.
-
-Os principais dados utilizados são:
+A técnica usa dois shaders. Eles começaram como pseudocódigo em sintaxe GLSL (arquivos originais em \texttt{pseudocodigo/}) e evoluíram para os shaders compiláveis da implementação (\texttt{código/shaders/uv\_mapping.vert} e \texttt{uv\_mapping.frag}), que são apresentados aqui como a versão final.
 
 \begin{itemize}
-    \item \textbf{inPosition}: posição do vértice no espaço do modelo;
-    \item \textbf{inNormal}: vetor normal associado ao vértice;
-    \item \textbf{inUV}: coordenadas de textura do vértice;
-    \item \textbf{model}: matriz de transformação do espaço do modelo para o
-    espaço de mundo;
-    \item \textbf{view}: matriz de transformação para o espaço de visualização;
-    \item \textbf{projection}: matriz de projeção;
-    \item \textbf{time}: tempo utilizado para produzir o movimento da textura;
-    \item \textbf{uvVelocity}: velocidade de deslocamento das coordenadas UV;
-    \item \textbf{uvScale}: escala aplicada às coordenadas UV.
+    \item \textbf{Vertex shader} (\texttt{uv\_mapping.vert}): transforma a posição de cada vértice para o espaço de recorte e repassa o UV e a normal. Não altera o UV.
+    \item \textbf{Fragment shader} (\texttt{uv\_mapping.frag}): recebe o UV já interpolado e, conforme o modo, lê a textura com o UV original ou deslocado, calcula o padrão procedural, mistura os dois ou desenha a grade de depuração. No fim, aplica a iluminação.
 \end{itemize}
 
-\subsection{Transformação da posição}
+O fluxo é: atributos do vértice \(\rightarrow\) vertex shader \(\rightarrow\) rasterização, que interpola \texttt{fragUV} e \texttt{fragNormal} com correção de perspectiva (Equação~\eqref{eq:perspectiva}) \(\rightarrow\) fragment shader \(\rightarrow\) cor no color attachment. Os dois shaders compartilham o mesmo bloco \texttt{uniform} (binding~0).
 
-A posição do vértice é transformada pelas matrizes Model, View e Projection.
-De forma simplificada:
+\section{Entradas, saídas e recursos}
 
-\begin{equation}
-P_{world}=M_{model}P_{local},
-\end{equation}
+\begin{table}[H]
+\centering
+\caption{Entradas, saídas e recursos dos shaders.}
+\label{tab:shader-io}
+\small
+\begin{tabular}{p{3.0cm}p{2.0cm}p{2.4cm}p{6.4cm}}
+\toprule
+\textbf{Nome} & \textbf{Tipo} & \textbf{Origem} & \textbf{Significado} \\
+\midrule
+\texttt{inPosition} & \texttt{vec3} & location 0 & Posição do vértice no espaço do modelo \\
+\texttt{inNormal} & \texttt{vec3} & location 1 & Normal do vértice \\
+\texttt{inUV} & \texttt{vec2} & location 2 & Coordenada de textura do glTF (\texttt{TEXCOORD\_0}) \\
+\texttt{params.model}, \texttt{view}, \texttt{projection} & \texttt{mat4} & binding 0 & Matrizes de modelo (rotação), câmera e projeção \\
+\texttt{params.time} & \texttt{float} & binding 0 & Segundos desde o início, \(t\) nas equações \\
+\texttt{params.mode} & \texttt{int} & binding 0 & Modo de renderização, de 1 a 5 \\
+\texttt{baseTexture} & \texttt{sampler2D} & binding 1 & Textura do modelo com o sampler (\texttt{LINEAR}, \texttt{REPEAT}) \\
+\texttt{fragUV}, \texttt{fragNormal} & \texttt{vec2}, \texttt{vec3} & vertex \(\rightarrow\) fragment & UV e normal, interpolados por fragmento \\
+\texttt{gl\_Position} & \texttt{vec4} & saída do vertex & Posição em espaço de recorte \\
+\texttt{outColor} & \texttt{vec4} & saída do fragment & Cor final do pixel (location 0) \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-\begin{equation}
-P_{view}=M_{view}P_{world},
-\end{equation}
+\section{Vertex shader}
 
-\begin{equation}
-P_{clip}=M_{projection}P_{view}.
-\end{equation}
-
-O resultado é utilizado para determinar a posição do vértice na tela.
-
-\subsection{Escala das coordenadas UV}
-
-A escala permite controlar a repetição da textura na superfície. A operação
-é representada por:
-
-\begin{equation}
-UV_{scale}=UV\cdot S,
-\end{equation}
-
-em que $UV$ representa a coordenada original e $S$ representa o fator de
-escala.
-
-\subsection{Deslocamento temporal}
-
-O deslocamento dinâmico utiliza o tempo de execução e uma velocidade definida
-pela aplicação:
-
-\begin{equation}
-UV_{offset}=Vt,
-\end{equation}
-
-em que $V$ representa a velocidade de deslocamento e $t$ representa o tempo.
-
-A coordenada enviada para o próximo estágio é então:
-
-\begin{equation}
-UV'=UV_{scale}+UV_{offset}.
-\end{equation}
-
-Essa operação permite produzir movimento contínuo da textura sem modificar
-a geometria da malha.
-
-\section{Pseudocódigo do Vertex Shader}
-
-O arquivo \texttt{uv\_mapping.vert} contém o pseudocódigo correspondente ao
-Vertex Shader:
-
+\begin{small}
 \begin{verbatim}
-
-layout(location = 0) in vec3 inPosition;
-layout(location = 1) in vec3 inNormal;
-layout(location = 2) in vec2 inUV;
-
-layout(set = 0, binding = 0) uniform Parameters
-{
-    mat4 model;
-    mat4 view;
-    mat4 projection;
-
-    float time;
-    vec2 uvVelocity;
-    vec2 uvScale;
+#version 450
+layout(set = 0, binding = 0) uniform Parameters {
+    mat4 model; mat4 view; mat4 projection;  // matrizes (Eq. 3.2)
+    float time; int mode;                    // tempo e modo (1 a 5)
 } params;
 
-layout(location = 0) out vec2 fragUV;
+layout(location = 0) in vec3 inPosition;     // atributos do glTF
+layout(location = 1) in vec3 inNormal;
+layout(location = 2) in vec2 inUV;
+layout(location = 0) out vec2 fragUV;        // vao para o rasterizador
 layout(location = 1) out vec3 fragNormal;
-layout(location = 2) out vec3 fragPosition;
 
-void main()
-{
-    vec4 worldPosition =
-        params.model * vec4(inPosition, 1.0);
-
-    vec4 viewPosition =
-        params.view * worldPosition;
-
-    gl_Position =
-        params.projection * viewPosition;
-
-    fragPosition = worldPosition.xyz;
-    fragNormal = inNormal;
-
-    vec2 scaledUV =
-        inUV * params.uvScale;
-
-    vec2 uvOffset =
-        params.uvVelocity * params.time;
-
-    fragUV =
-        scaledUV + uvOffset;
+void main() {
+    // posicao em espaco de recorte: P * V * M * p
+    gl_Position = params.projection * params.view * params.model
+                * vec4(inPosition, 1.0);
+    // o UV do arquivo e repassado sem alteracao; o rasterizador
+    // o interpola com correcao de perspectiva
+    fragUV = inUV;
+    // a matriz model e so rotacao, entao serve tambem para normais
+    fragNormal = mat3(params.model) * inNormal;
 }
 \end{verbatim}
+\end{small}
 
+\section{Fragment shader}
 
-\section{Rasterização e interpolação}
+\begin{small}
+\begin{verbatim}
+#version 450
+layout(set = 0, binding = 0) uniform Parameters {
+    mat4 model; mat4 view; mat4 projection; float time; int mode;
+} params;
+layout(set = 0, binding = 1) uniform sampler2D baseTexture;
+layout(location = 0) in vec2 fragUV;
+layout(location = 1) in vec3 fragNormal;
+layout(location = 0) out vec4 outColor;
 
-Após a execução do Vertex Shader, as primitivas são submetidas à
-rasterização. Durante esse processo, os atributos enviados pelos vértices
-são interpolados para os fragmentos.
+const int MODE_TEXTURE = 1, MODE_DYNAMIC_UV = 2, MODE_PROCEDURAL = 3,
+          MODE_BLEND = 4,   MODE_UV_GRID = 5;
 
-Para um triângulo, a interpolação das coordenadas UV pode ser representada
-por:
+// UV DINAMICO (Eqs. 3.5 e 3.6): a malha fica parada, o UV se move
+vec2 dynamicUV(vec2 uv, float t) {
+    uv.x += t * 0.10;                              // translacao
+    uv.x += sin(uv.y * 12.0 + t * 2.0) * 0.015;    // ondulacao em u
+    uv.y += cos(uv.x * 12.0 + t * 1.5) * 0.015;    // ondulacao em v
+    return uv;   // pode sair de [0,1]: o sampler REPEAT da a volta
+}
 
-\begin{equation}
-UV=\alpha UV_0+\beta UV_1+\gamma UV_2,
-\end{equation}
+// PADRAO PROCEDURAL (Eq. 3.11): cor gerada por funcoes, sem imagem.
+// Retorna a cor em rgb e a "energia" da onda em a.
+vec4 proceduralPattern(vec2 uv, float t) {
+    uv.x += t * 0.40;                              // deslocamento
+    uv.y += sin(t * 1.2) * 0.10;
+    float dx = sin(uv.y * 14.0 + t * 2.0) * 0.08;  // distorcao: as duas
+    float dy = cos(uv.x * 12.0 - t * 1.5) * 0.08;  // partes usam o uv
+    uv += vec2(dx, dy);                            // anterior a ela
+    float w1 = sin(uv.x * 20.0 + uv.y * 8.0 + t * 4.0);   // 3 ondas
+    float w2 = sin(uv.y * 24.0 - uv.x * 6.0 - t * 3.0);
+    float w3 = sin((uv.x + uv.y) * 18.0 + t * 2.0);
+    float e = ((w1 + w2 + w3) / 3.0) * 0.5 + 0.5;  // normaliza p/ [0,1]
+    vec2 g = fract(uv * 8.0);                      // grade 8x8 (Eq. 3.8)
+    float grid = max(smoothstep(0.46, 0.50, abs(g.x - 0.5)),
+                     smoothstep(0.46, 0.50, abs(g.y - 0.5)));
+    vec3 c = mix(vec3(0.005, 0.015, 0.12), vec3(0.0, 0.18, 0.85), e);
+    c = mix(c, vec3(0.0, 0.85, 1.0), smoothstep(0.55, 0.90, e));
+    c = mix(c, vec3(0.65, 1.0, 1.0), smoothstep(0.90, 1.0, e));
+    c = mix(c, c * 0.35, grid * 0.25);             // escurece a grade
+    c += vec3(0.0, 0.25, 0.35) * pow(e, 3.0);      // brilho
+    return vec4(c, e);
+}
 
-com:
+// GRADE UV (depuracao): U em vermelho, V em verde, xadrez 10x10
+vec3 uvGrid(vec2 uv) {
+    vec2 cells = uv * 10.0;
+    float checker = mod(floor(cells.x) + floor(cells.y), 2.0);
+    vec2 d = abs(fract(cells) - 0.5);
+    float line = smoothstep(0.44, 0.48, max(d.x, d.y));
+    vec3 c = vec3(fract(uv.x), fract(uv.y), 0.2) * (0.65 + 0.35 * checker);
+    return mix(c, vec3(1.0), line);
+}
 
-\begin{equation}
-\alpha+\beta+\gamma=1.
-\end{equation}
+void main() {
+    float t = params.time;
+    // iluminacao difusa (Eq. 3.14); a normal interpolada e renormalizada
+    vec3 n = normalize(fragNormal);
+    float diffuse = max(dot(n, normalize(vec3(0.4, 0.8, 0.6))), 0.0);
+    float lighting = 0.35 + 0.65 * diffuse;
+    vec3 color;
+    if (params.mode == MODE_TEXTURE)
+        color = texture(baseTexture, fragUV).rgb * lighting;
+    else if (params.mode == MODE_DYNAMIC_UV)
+        color = texture(baseTexture, dynamicUV(fragUV, t)).rgb * lighting;
+    else if (params.mode == MODE_PROCEDURAL)
+        color = proceduralPattern(fragUV, t).rgb * (0.55 + 0.45 * diffuse);
+    else if (params.mode == MODE_UV_GRID)
+        color = uvGrid(fragUV) * lighting;
+    else {  // MODE_BLEND (e qualquer valor fora de 1..5)
+        vec3 tex = texture(baseTexture, dynamicUV(fragUV, t)).rgb * lighting;
+        vec4 p = proceduralPattern(fragUV, t);
+        color = mix(tex, p.rgb, smoothstep(0.45, 0.95, p.a) * 0.75);
+    }
+    outColor = vec4(color, 1.0);
+}
+\end{verbatim}
+\end{small}
 
-O resultado dessa interpolação é recebido pelo Fragment Shader como
-\texttt{fragUV}.
+\section{Equações e variáveis}
 
+Cada cálculo do shader corresponde a uma equação do Capítulo~\ref{chap:equacoes}, onde estão o significado de cada variável e o estágio em que ela é executada: posição (Eq.~\ref{eq:mvp}), translação (Eq.~\ref{eq:translacao}), ondulação (Eq.~\ref{eq:onda}), repetição (Eq.~\ref{eq:repeat}), escala (Eq.~\ref{eq:escala}), padrão procedural e misturas (Eqs.~\ref{eq:procedural} e~\ref{eq:mix}) e iluminação (Eq.~\ref{eq:lambert}). As funções GLSL usadas são \texttt{mix(a,b,x)} \(= a(1-x)+bx\); \texttt{smoothstep(e0,e1,x)}, uma transição suave de 0 a 1 entre \(e_0\) e \(e_1\); \texttt{fract(x)} \(= x-\lfloor x\rfloor\); e \texttt{normalize}, que divide o vetor pela sua norma.
 
-\section{Fragment Shader}
+\section{Condições e laços}
 
-O Fragment Shader é responsável pela etapa principal do efeito visual. Ele
-recebe as coordenadas UV interpoladas, a normal e a posição do fragmento.
-
-Também recebe os mesmos parâmetros temporais utilizados no Vertex Shader,
-além dos recursos de textura.
-
-Os principais recursos utilizados são:
-
-\begin{itemize}
-    \item \textbf{fragUV}: coordenada UV interpolada;
-    \item \textbf{fragNormal}: normal interpolada;
-    \item \textbf{fragPosition}: posição do fragmento;
-    \item \textbf{time}: tempo da animação;
-    \item \textbf{textureImage}: imagem contendo a textura;
-    \item \textbf{textureSampler}: sampler utilizado para realizar a leitura;
-    \item \textbf{outColor}: cor final produzida pelo shader.
-\end{itemize}
-
+O fragment shader tem uma única cadeia de condições, sobre \texttt{params.mode}, que escolhe um de cinco cálculos. Como \texttt{mode} vem do Uniform Buffer, o valor é o mesmo para todos os fragmentos do quadro: todas as threads seguem o mesmo ramo e não há divergência. Não há laços: as três ondas do padrão procedural são uma soma de tamanho fixo, escrita explicitamente, e nenhum cálculo depende de vizinhos ou de iterações. O critério de parada, portanto, não se aplica. Cada fragmento executa um número constante de operações (Tabela~\ref{tab:custo-modos}).
 
 \section{Amostragem da textura}
 
-A textura é acessada utilizando as coordenadas UV resultantes. Como o efeito
-dinâmico pode deslocar a coordenada para fora do intervalo $[0,1]$, o
-endereçamento pode utilizar repetição.
-
-No pseudocódigo, a operação:
-
-\begin{equation}
-UV_{sample}=fract(UV)
-\end{equation}
-
-mantém a coordenada no intervalo $[0,1)$ para representar o comportamento
-de repetição.
-
-A leitura da textura é realizada conceitualmente por:
-
-\begin{equation}
-C_{texture}=Texture(UV_{sample}).
-\end{equation}
-
-O Sampler define características da leitura, incluindo filtragem e
-endereçamento. Quando mipmaps são utilizados, o nível apropriado pode ser
-selecionado de acordo com a resolução aparente da textura durante a
-renderização.
-
-
-\section{Função procedural}
-
-Além da textura, o Fragment Shader utiliza uma função matemática para
-produzir uma variação procedural.
-
-Neste pseudocódigo é utilizada uma função seno:
-
-\begin{equation}
-W=\sin(10U+10V+2t).
-\end{equation}
-
-O resultado da função seno pertence ao intervalo $[-1,1]$. Para convertê-lo
-para o intervalo $[0,1]$, é aplicada a transformação:
-
-\begin{equation}
-W_{normalizado}=\frac{W+1}{2}.
-\end{equation}
-
-O valor resultante pode ser utilizado como intensidade para produzir uma
-variação visual sobre a textura.
-
-
-\section{Normalização e iluminação}
-
-A normal recebida pelo Fragment Shader é normalizada antes de participar dos
-cálculos de iluminação:
-
-\begin{equation}
-N=\frac{N}{\|N\|}.
-\end{equation}
-
-Uma direção de luz também é normalizada. O fator de iluminação é obtido pelo
-produto escalar:
-
-\begin{equation}
-L=\max(0,N\cdot D),
-\end{equation}
-
-em que $N$ representa a normal normalizada e $D$ representa a direção da luz.
-
-O uso de $\max$ evita valores negativos quando a superfície estiver voltada
-para o lado oposto da fonte de iluminação.
-
-
-\section{Combinação dos resultados}
-
-O resultado procedural é convertido em uma cor:
-
-\begin{equation}
-C_{procedural}=
-(W,W,W).
-\end{equation}
-
-A textura original e o resultado procedural são então combinados por meio
-de uma interpolação:
-
-\begin{equation}
-C_{mix}=
-(1-a)C_{texture}+aC_{procedural},
-\end{equation}
-
-em que $a$ representa o fator de mistura.
-
-No pseudocódigo utilizado, $a=0.5$, permitindo combinar igualmente os dois
-resultados.
-
-
-\section{Tratamento de limites}
-
-Antes de produzir a cor final, os componentes são limitados ao intervalo
-$[0,1]$:
-
-\begin{equation}
-C_{final}=\operatorname{clamp}(C_{mix}L,0,1).
-\end{equation}
-
-Esse tratamento evita valores de cor fora do intervalo esperado.
-
-O uso de \texttt{fract} nas coordenadas também impede que valores
-excessivamente deslocados sejam enviados diretamente para a amostragem,
-mantendo o comportamento de repetição da textura.
-
-
-\section{Pseudocódigo do Fragment Shader}
-
-O arquivo \texttt{uv\_mapping.frag} contém o pseudocódigo correspondente ao
-Fragment Shader:
-
-\begin{verbatim}
-
-layout(location = 0) in vec2 fragUV;
-layout(location = 1) in vec3 fragNormal;
-layout(location = 2) in vec3 fragPosition;
-
-layout(location = 0) out vec4 outColor;
-
-layout(set = 0, binding = 0) uniform Parameters
-{
-    mat4 model;
-    mat4 view;
-    mat4 projection;
-
-    float time;
-    vec2 uvVelocity;
-    vec2 uvScale;
-} params;
-
-layout(set = 0, binding = 1) uniform texture2D textureImage;
-layout(set = 0, binding = 2) uniform sampler textureSampler;
-
-
-float proceduralPattern(vec2 uv, float time)
-{
-    float wave =
-        sin(
-            uv.x * 10.0
-            + uv.y * 10.0
-            + time * 2.0
-        );
-
-    float normalizedWave =
-        (wave + 1.0) * 0.5;
-
-    return normalizedWave;
-}
-
-
-void main()
-{
-    vec2 uv = fragUV;
-
-    vec2 sampledUV =
-        fract(uv);
-
-    vec4 textureColor =
-        texture(
-            sampler2D(textureImage, textureSampler),
-            sampledUV
-        );
-
-    float proceduralValue =
-        proceduralPattern(
-            sampledUV,
-            params.time
-        );
-
-    vec3 normal =
-        normalize(fragNormal);
-
-    vec3 lightDirection =
-        normalize(vec3(0.4, 0.8, 0.6));
-
-    float lightFactor =
-        max(
-            dot(normal, lightDirection),
-            0.0
-        );
-
-    vec3 proceduralColor =
-        vec3(
-            proceduralValue,
-            proceduralValue,
-            proceduralValue
-        );
-
-    vec3 finalColor =
-        mix(
-            textureColor.rgb,
-            proceduralColor,
-            0.5
-        );
-
-    finalColor =
-        finalColor * lightFactor;
-
-    finalColor =
-        clamp(
-            finalColor,
-            0.0,
-            1.0
-        );
-
-    outColor =
-        vec4(
-            finalColor,
-            textureColor.a
-        );
-}
-\end{verbatim}
-
-
-\section{Fluxo completo dos dados}
-
-O processamento completo pode ser resumido da seguinte forma:
-
-\begin{center}
-\begin{tabular}{c}
-\textit{Vertex Buffer}
-$\rightarrow$
-\textit{Vertex Shader}
-\\[0.15cm]
-$\downarrow$
-\\[0.15cm]
-\textit{Posição transformada + UV modificada}
-\\[0.15cm]
-$\rightarrow$
-\textit{Rasterização e Interpolação}
-\\[0.15cm]
-$\downarrow$
-\\[0.15cm]
-\textit{Fragment Shader}
-\\[0.15cm]
-$\downarrow$
-\\[0.15cm]
-\textit{Sampling + Função Procedural + Iluminação}
-\\[0.15cm]
-$\downarrow$
-\\[0.15cm]
-\textit{Cor Final}
-\\[0.15cm]
-$\rightarrow$
-\textit{Color Attachment}
-\end{tabular}
-\end{center}
-
-A aplicação fornece os dados geométricos e os parâmetros dinâmicos. O
-Vertex Shader transforma a geometria e prepara as coordenadas UV. A
-rasterização interpola esses atributos para os fragmentos. O Fragment Shader
-utiliza as coordenadas resultantes para acessar a textura e calcular a
-variação procedural.
-
-O resultado final é enviado ao Color Attachment do Render Pass, completando
-o fluxo de processamento.
-
-
-\section{Relação com o UV Mapping Dinâmico e Procedural}
-
-O pseudocódigo implementa as duas características centrais estudadas neste
-trabalho.
-
-No UV Mapping Dinâmico, a coordenada de textura é alterada de acordo com o
-tempo:
-
-\begin{equation}
-UV'=UV+Vt.
-\end{equation}
-
-Isso permite produzir movimento contínuo da textura sem modificar a malha.
-
-No Mapeamento Procedural, uma função matemática utiliza a coordenada UV e o
-tempo para produzir uma variação:
-
-\begin{equation}
-C=f(UV,t).
-\end{equation}
-
-A combinação dos dois mecanismos permite utilizar uma textura convencional
-como base e, simultaneamente, adicionar uma variação calculada durante a
-execução do shader.
-
-Dessa maneira, a lógica descrita nos arquivos \texttt{uv\_mapping.vert} e
-\texttt{uv\_mapping.frag} complementa a arquitetura Vulkan apresentada na
-Entrega 2 e descreve como o efeito pode ser implementado posteriormente em
-GLSL.
+A textura é lida com \texttt{texture(baseTexture, uv)} nos modos 1, 2 e 4. O sampler é configurado na aplicação (Capítulo~\ref{chap:vulkan}) com:
+\begin{itemize}
+    \item filtragem \texttt{LINEAR} na ampliação e na redução, que interpola os quatro texels mais próximos;
+    \item endereçamento \texttt{REPEAT}, que aplica a Equação~\eqref{eq:repeat} ao UV deslocado;
+    \item anisotropia no máximo suportado pela GPU;
+    \item modo de mipmap \texttt{LINEAR}.
+\end{itemize}
+Como a imagem tem um único nível, o nível de detalhe calculado pela GPU (Equação~\eqref{eq:lod}) não tem efeito. Essa limitação está registrada na Tabela~\ref{tab:otimizacoes}. O padrão procedural e a grade não leem textura: são calculados diretamente a partir do UV.
+
+\section{Tratamento de limites e valores inválidos}
+
+\begin{itemize}
+    \item \textbf{UV fora de \([0,1]\):} o deslocamento faz \(u\) crescer sem limite. Quem trata isso é o sampler (\texttt{REPEAT}), e não o shader. A grade usa \texttt{fract} pelo mesmo motivo.
+    \item \textbf{Normal interpolada:} não é unitária, por isso é renormalizada. Uma normal nula produziria NaN, mas o modelo glTF sempre fornece normais.
+    \item \textbf{Luz por trás da superfície:} \texttt{max(dot, 0)} impede iluminação negativa, e o termo constante de 0,35 evita regiões totalmente pretas.
+    \item \textbf{Energia procedural:} a soma das ondas, no intervalo \([-3,3]\), é normalizada para \([0,1]\) antes de servir de peso nas misturas, o que garante que \texttt{mix} e \texttt{smoothstep} recebam valores válidos.
+    \item \textbf{Cor acima de 1:} o brilho do padrão procedural pode somar até \(0{,}35\) ao canal azul e levar a cor acima de 1. O shader não aplica \texttt{clamp}: como o color attachment usa um formato normalizado de 8 bits, a GPU limita cada canal a \([0,1]\) na escrita.
+    \item \textbf{Modo inválido:} qualquer valor fora de 1 a 5 cai no último ramo (mistura). Na aplicação, o valor só muda pelas teclas 1 a 5.
+\end{itemize}
+
+\section{Resultado esperado e relação com a técnica}
+
+O vertex shader produz a posição do vértice na tela, e o fragment shader produz a cor de cada pixel do modelo. A Figura~\ref{fig:app-modos} mostra os modos 1, 3, 4 e 5; o modo~2 está na Figura~\ref{fig:app-uv-dinamico}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{imagens/marcadas/app_modos.png}
+    \caption{Resultado dos shaders na implementação (capturas próprias, \texttt{código/evidencias/}).}
+    \label{fig:app-modos}
+\end{figure}
+
+Resultado esperado de cada modo:
+\begin{enumerate}
+    \item a textura original do modelo;
+    \item a mesma textura deslizando e ondulando sobre a malha parada (Figura~\ref{fig:app-uv-dinamico});
+    \item ondas azuis e ciano geradas sem imagem;
+    \item a textura deslizando com ondas de luz por cima;
+    \item a grade de depuração, que revela o esticamento e as costuras do UV.
+\end{enumerate}
+O modo~2 implementa o UV mapping dinâmico (a parametrização muda a cada quadro), o modo~3 o mapeamento procedural (a cor vem de uma função) e o modo~4 a combinação dos dois.
