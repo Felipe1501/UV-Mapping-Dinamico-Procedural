@@ -2,7 +2,7 @@ PROJETO OVERLEAF - UV MAPPING DINAMICO E PROCEDURAL
 
 ## PDF do trabalho
 
-[Visualizar PDF](./UV_Mapping_Dinamico_Procedural.pdf)
+[Visualizar PDF](./docs/UV_Mapping_Dinamico_Procedural.pdf)
 
 Este projeto contém os arquivos em LaTeX utilizados para as entregas da
 disciplina Computação Gráfica e Processamento de Imagens, com o tema
@@ -103,11 +103,13 @@ arquitetura gráfica baseada em Vulkan.
 
 Foram desenvolvidos dois shaders em sintaxe semelhante à linguagem GLSL:
 
-- shaders/uv_mapping.vert
+- docs/pseudocodigo/uv_mapping.vert
   Pseudocódigo do Vertex Shader.
 
-- shaders/uv_mapping.frag
+- docs/pseudocodigo/uv_mapping.frag
   Pseudocódigo do Fragment Shader.
+
+Os shaders finais, compiláveis, estão em código/shaders/.
 
 O Vertex Shader é responsável pelo processamento dos vértices, transformação
 das posições, preparação das coordenadas UV e aplicação do deslocamento
