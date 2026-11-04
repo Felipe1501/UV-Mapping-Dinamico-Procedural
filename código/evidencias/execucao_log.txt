@@ -1,0 +1,33 @@
+Modelo carregado: assets/models/Duck.glb (2399 vertices, 4212 triangulos, textura 512x512)
+Validation layer ativada: erros de uso da API aparecem neste terminal.
+Instance criada.
+Surface criada.
+GPU encontrada: NVIDIA GeForce RTX 4060 Ti
+GPU selecionada: NVIDIA GeForce RTX 4060 Ti
+Logical Device criado.
+Swapchain criada.
+Image Views criadas.
+Render Pass criado.
+Descriptor Set Layout criado.
+Graphics Pipeline criada.
+Command Pool criada.
+Depth Buffer criado.
+Framebuffers criados.
+Vertex Buffer criado.
+Index Buffer criado.
+Textura criada.
+Sampler criado.
+Uniform Buffers criados.
+Descriptor Pool criada.
+Descriptor Sets criados.
+Command Buffers gravados.
+Sincronizacao criada.
+Vulkan inicializado com sucesso!
+Controles: 1-5 trocam o modo, Espaco pausa a rotacao, Esc fecha.
+Entrando no loop de renderizacao...
+Modo: 1 - Textura original (UV do modelo)
+Modo: 2 - UV dinamica
+Modo: 3 - Procedural
+Modo: 4 - Textura + procedural
+Modo: 5 - Grade UV (depuracao)
+Loop de renderizacao encerrado.
