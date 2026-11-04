@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(UVMappingEntrega4 LANGUAGES CXX)
+project(UVMapping LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -36,13 +36,24 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(glm tinygltf)
 
-add_executable(UVMappingEntrega4
+# Um arquivo por assunto: cada um implementa uma parte da classe VulkanApp.
+add_executable(UVMapping
     src/main.cpp
-    src/VulkanApp.cpp
     src/ModelLoader.cpp
+    src/VulkanApp.cpp            # janela, inicialização e loop principal
+    src/VulkanInstance.cpp       # instância, validação e superfície
+    src/VulkanDevice.cpp         # GPU, filas e dispositivo lógico
+    src/VulkanSwapchain.cpp      # swapchain, profundidade e framebuffers
+    src/VulkanShaders.cpp        # leitura dos .spv e shader modules
+    src/VulkanPipeline.cpp       # render pass e pipeline gráfico
+    src/VulkanDescriptors.cpp    # descriptor set (UBO e textura)
+    src/VulkanBuffers.cpp        # memória, buffers e cópias para a GPU
+    src/VulkanTexture.cpp        # imagens, barreiras e sampler
+    src/VulkanRenderer.cpp       # comandos, sincronização e desenho
+    src/VulkanCleanup.cpp        # destruição dos recursos
 )
 
-target_link_libraries(UVMappingEntrega4
+target_link_libraries(UVMapping
     PRIVATE
         Vulkan::Vulkan
         glfw
@@ -51,7 +62,7 @@ target_link_libraries(UVMappingEntrega4
 )
 
 # O Vulkan usa profundidade de 0 a 1 (o padrão do glm é -1 a 1, do OpenGL).
-target_compile_definitions(UVMappingEntrega4
+target_compile_definitions(UVMapping
     PRIVATE
         GLM_FORCE_DEPTH_ZERO_TO_ONE
 )
@@ -82,7 +93,7 @@ if(Vulkan_GLSLC_EXECUTABLE)
     endforeach()
 
     add_custom_target(shaders DEPENDS ${SHADER_BINARIES})
-    add_dependencies(UVMappingEntrega4 shaders)
+    add_dependencies(UVMapping shaders)
 else()
     message(STATUS "glslc nao encontrado: usando os .spv ja compilados em shaders/")
 endif()
