@@ -1,5 +1,5 @@
 // Arquitetura do pipeline Vulkan - UV Mapping Dinâmico e Procedural
-// Reflete a implementação em código/src/VulkanApp.cpp.
+// Reflete a implementação em código/src/ (arquivos Vulkan*.cpp).
 // Gerar: dot -Tpdf pipeline_vulkan.dot -o pipeline_vulkan.pdf
 //
 // Cores dos nós: azul = dados e recursos; verde = estágios e shaders;

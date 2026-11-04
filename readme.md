@@ -1,139 +1,58 @@
-PROJETO OVERLEAF - UV MAPPING DINAMICO E PROCEDURAL
+# UV Mapping Dinâmico e Procedural
+
+Trabalho da disciplina Computação Gráfica e Processamento de Imagens.
 
 ## PDF do trabalho
 
 [Visualizar PDF](./docs/UV_Mapping_Dinamico_Procedural.pdf)
 
-Este projeto contém os arquivos em LaTeX utilizados para as entregas da
-disciplina Computação Gráfica e Processamento de Imagens, com o tema
-UV Mapping Dinâmico e Procedural.
+O PDF reúne todo o trabalho: revisão bibliográfica, arquitetura do pipeline
+Vulkan, shaders e código. O apêndice "Checklist dos requisitos" aponta onde
+cada item pedido está no documento.
 
-O projeto inclui a documentação teórica da técnica, aplicações práticas,
-utilização em jogos e a arquitetura do pipeline Vulkan relacionada ao tema.
+## Pastas
 
+- `docs/`: documento em LaTeX
+  - `main.tex`: arquivo principal
+  - `capitulos/`: um arquivo por capítulo
+  - `referencias.bib`: referências (biblatex, estilo ABNT)
+  - `imagens/`: capturas originais e capturas marcadas (`imagens/marcadas/`)
+  - `artigos/`: PDFs das três publicações usadas
+  - `resumos/`: resumo de cada publicação
+  - `diagrama/`: diagrama do pipeline Vulkan (`pipeline_vulkan.dot` e `.pdf`)
+  - `pseudocodigo/`: pseudocódigo dos shaders
+  - `videos.txt`: links das lives de gameplay usadas nas capturas
+- `código/`: aplicação Vulkan em C++, com instruções no `código/README.md`
 
-PASTAS:
-
-- capitulos/: textos e seções do trabalho
-- imagens/: capturas e imagens utilizadas no trabalho
-- artigos/: PDFs das publicações utilizadas como referência
-- resumos/: resumos das publicações utilizadas
-- diagrama/: arquivos utilizados para a elaboração do diagrama do pipeline Vulkan
-
-
-ARQUIVOS PRINCIPAIS:
-
-- main.tex: arquivo principal do projeto LaTeX
-- referencias.bib: referências bibliográficas, quando utilizadas
-- readme.txt: informações e organização do projeto
-
-
-ENTREGA 1:
-
-A primeira entrega apresenta a revisão bibliográfica sobre UV Mapping
-Dinâmico e Procedural, incluindo:
-
-- fundamentação teórica;
-- equações e funcionamento matemático;
-- relação com Vulkan;
-- aplicações práticas;
-- utilização da técnica em jogos;
-- capturas de gameplay;
-- vídeos de demonstração;
-- resumo das publicações utilizadas;
-- conclusão e referências.
-
-
-PUBLICAÇÕES PRINCIPAIS:
+## Publicações principais
 
 1. Heckbert (1986) - Survey of Texture Mapping
    https://doi.org/10.1109/MCG.1986.276672
-
 2. Dong et al. (2020) - Survey of Procedural Methods for Two-Dimensional Texture Generation
    https://doi.org/10.3390/s20041135
-
 3. Smelik et al. (2014) - A Survey on Procedural Modelling for Virtual Worlds
    https://doi.org/10.1111/cgf.12276
 
+## Conteúdo
 
-ENTREGA 2:
+**Revisão bibliográfica** (Capítulos 1 a 3 e 6 a 8): teoria, quando
+usar, limitações e custo; equações; aplicações reais; análise de dois jogos com
+capturas marcadas; resumos das publicações.
 
-A segunda entrega complementa o trabalho com a arquitetura do pipeline
-Vulkan relacionada ao UV Mapping Dinâmico e Procedural.
+**Arquitetura do pipeline Vulkan** (Capítulo 4): diagrama em
+`docs/diagrama/`, fluxo de dados, descriptor sets, buffers, render pass,
+barreiras, sincronização e justificativa das decisões.
 
-O diagrama apresenta:
+**Shaders** (Capítulo 5):
 
-- fluxo de dados;
-- aplicação/CPU;
-- Vertex Buffer;
-- Index Buffer;
-- Uniform Buffer (UBO);
-- Descriptor Set e Bindings;
-- Texture Image;
-- Image View;
-- Sampler;
-- Vertex Input;
-- Vertex Shader;
-- Rasterização;
-- interpolação das coordenadas UV;
-- Fragment Shader;
-- Render Pass;
-- Subpass;
-- Color Attachment;
-- Depth Attachment;
-- Framebuffer;
-- dependências de execução;
-- barreiras de memória;
-- transições de Image Layout;
-- operações específicas de UV Mapping Dinâmico;
-- operações específicas de Mapeamento Procedural.
+- `docs/pseudocodigo/uv_mapping.vert`: vertex shader. Calcula a posição do
+  vértice na tela e repassa o UV e a normal (não altera o UV).
+- `docs/pseudocodigo/uv_mapping.frag`: fragment shader. Calcula a cor de cada
+  pixel em cinco modos: textura, UV dinâmico, procedural, mistura e grade UV.
 
-A explicação escrita descreve a função de cada etapa, os dados processados,
-os recursos compartilhados, os shaders utilizados, os buffers, os
-Descriptor Sets e Bindings, as sincronizações e as transições de imagens.
+Os dois arquivos estão em sintaxe GLSL e comentados trecho a trecho
+(Entra / Faz / Sai / Na tela). O código deles é o mesmo dos shaders compilados
+em `código/shaders/`; só os comentários são diferentes.
 
-A arquitetura também apresenta a relação entre os recursos do Vulkan e a
-execução das técnicas de UV Mapping Dinâmico e Procedural.
-
-ENTREGA 3:
-
-A terceira entrega apresenta o pseudocódigo dos shaders necessários para
-representar a implementação do UV Mapping Dinâmico e Procedural em uma
-arquitetura gráfica baseada em Vulkan.
-
-Foram desenvolvidos dois shaders em sintaxe semelhante à linguagem GLSL:
-
-- docs/pseudocodigo/uv_mapping.vert
-  Pseudocódigo do Vertex Shader.
-
-- docs/pseudocodigo/uv_mapping.frag
-  Pseudocódigo do Fragment Shader.
-
-Os shaders finais, compiláveis, estão em código/shaders/.
-
-O Vertex Shader é responsável pelo processamento dos vértices, transformação
-das posições, preparação das coordenadas UV e aplicação do deslocamento
-dependente do tempo.
-
-O Fragment Shader é responsável pela utilização das coordenadas UV
-interpoladas, amostragem da textura, cálculo procedural, normalização,
-iluminação e produção da cor final.
-
-A documentação da Entrega 3 apresenta:
-
-- objetivo de cada shader;
-- fluxo de dados entre os shaders;
-- entradas e saídas;
-- Uniform Buffer;
-- textura e Sampler;
-- transformações de posição;
-- transformação e deslocamento das coordenadas UV;
-- amostragem da textura;
-- filtragem e mipmapping;
-- função procedural;
-- normalização de vetores;
-- cálculos de iluminação;
-- condições e tratamento de limites;
-- cálculo da cor final;
-- resultado esperado;
-- relação dos shaders com o UV Mapping Dinâmico e Procedural.
+**Código** (`código/`): aplicação em C++ com Vulkan que
+carrega o modelo `Duck.glb` e aplica os shaders. As teclas 1 a 5 trocam o modo.

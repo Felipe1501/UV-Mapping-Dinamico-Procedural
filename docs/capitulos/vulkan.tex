@@ -3,7 +3,7 @@
 
 Vulkan é uma API gráfica de baixo nível em que a aplicação declara explicitamente cada recurso que os shaders vão ler, como esses recursos são agrupados, quando são atualizados e como a CPU e a GPU se sincronizam. Para o UV mapping dinâmico e procedural, isso significa responder a quatro perguntas: onde ficam as coordenadas UV, como o tempo chega ao shader a cada quadro, como a textura e o sampler são expostos e onde cada cálculo é feito.
 
-A Figura~\ref{fig:pipeline-vulkan} mostra a arquitetura da implementação. Em azul estão os dados e recursos da aplicação; em verde, os estágios do pipeline e os shaders; em laranja, os mecanismos de sincronização; em roxo, o descriptor set, o Render Pass e seus attachments; em amarelo, as operações específicas de UV mapping. As setas contínuas indicam o sentido em que um dado trafega, com o rótulo do que é transmitido. As setas tracejadas em laranja indicam dependências de sincronização. Os grupos tracejados reúnem recursos do mesmo tipo. O arquivo-fonte do diagrama, gerado com Graphviz, está em \texttt{diagrama/pipeline\_vulkan.dot}. O restante do capítulo descreve cada parte a partir da implementação entregue (\texttt{código/src/VulkanApp.cpp}), que renderiza o modelo \texttt{Duck.glb} em cinco modos selecionáveis pelas teclas 1 a 5.
+A Figura~\ref{fig:pipeline-vulkan} mostra a arquitetura da implementação. Em azul estão os dados e recursos da aplicação; em verde, os estágios do pipeline e os shaders; em laranja, os mecanismos de sincronização; em roxo, o descriptor set, o Render Pass e seus attachments; em amarelo, as operações específicas de UV mapping. As setas contínuas indicam o sentido em que um dado trafega, com o rótulo do que é transmitido. As setas tracejadas em laranja indicam dependências de sincronização. Os grupos tracejados reúnem recursos do mesmo tipo. O arquivo-fonte do diagrama, gerado com Graphviz, está em \texttt{docs/diagrama/pipeline\_vulkan.dot}. O restante do capítulo descreve cada parte a partir da implementação entregue (\texttt{código/src/}, um arquivo por assunto), que renderiza o modelo \texttt{Duck.glb} em cinco modos selecionáveis pelas teclas 1 a 5.
 
 \begin{figure}[p]
     \centering
@@ -99,9 +99,9 @@ O binding~0 é visível nos dois estágios porque o vertex shader usa as matrize
 \subsection{Do projeto à implementação}
 \label{sec:projeto-impl}
 
-O projeto inicial da arquitetura (feito antes da implementação, junto com o pseudocódigo em \texttt{pseudocodigo/}) previa três bindings: o Uniform Buffer (0), a imagem (\texttt{SAMPLED\_IMAGE}, 1) e o sampler (\texttt{SAMPLER}, 2), separados. Na implementação, imagem e sampler foram unidos em um \texttt{COMBINED\_IMAGE\_SAMPLER}. As duas formas são válidas, e a escolha depende de quantas texturas existem. Com uma textura e um sampler, o descriptor combinado é mais simples: um binding e uma escrita de descriptor a menos, e o GLSL usa \texttt{sampler2D} diretamente. A separação compensa quando muitas texturas compartilham as mesmas regras de filtragem, por exemplo em um material com cor, normal e rugosidade, em que um único \texttt{VkSampler} é reutilizado.
+O projeto inicial da arquitetura, feito antes da implementação junto com o pseudocódigo, previa três bindings: o Uniform Buffer (0), a imagem (\texttt{SAMPLED\_IMAGE}, 1) e o sampler (\texttt{SAMPLER}, 2), separados. Na implementação, imagem e sampler foram unidos em um \texttt{COMBINED\_IMAGE\_SAMPLER}. As duas formas são válidas, e a escolha depende de quantas texturas existem. Com uma textura e um sampler, o descriptor combinado é mais simples: um binding e uma escrita de descriptor a menos, e o GLSL usa \texttt{sampler2D} diretamente. A separação compensa quando muitas texturas compartilham as mesmas regras de filtragem, por exemplo em um material com cor, normal e rugosidade, em que um único \texttt{VkSampler} é reutilizado.
 
-O Uniform Buffer também mudou. O projeto previa os campos \texttt{uvVelocity} e \texttt{uvScale}. A implementação os trocou por \texttt{time} e \texttt{mode} e deixou as velocidades como constantes no shader, porque elas não variam em tempo de execução. O campo \texttt{mode} seleciona qual dos cinco cálculos o fragment shader executa.
+O Uniform Buffer também mudou. O projeto previa os campos \texttt{uvVelocity} e \texttt{uvScale}. A implementação manteve \texttt{time}, trocou esses dois campos por \texttt{mode} e deixou as velocidades como constantes no shader, porque elas não variam em tempo de execução. O campo \texttt{mode} seleciona qual dos cinco cálculos o fragment shader executa.
 
 \subsection{Layout de memória do Uniform Buffer (std140)}
 
@@ -237,7 +237,7 @@ Mipmaps & \textbf{Pendente} & A textura tem \texttt{mipLevels = 1}, o que causa 
 Specialization constants por modo & Pendente & O shader escolhe o modo com \texttt{if} sobre \texttt{params.mode}. Não há divergência entre threads, pois o valor é igual para todos os fragmentos, mas o shader contém os cinco caminhos. Com \texttt{VkSpecializationInfo}, cada modo viraria um pipeline só com o código necessário. \\
 Transformações lineares no vertex shader & Pendente & A translação de \texttt{dynamicUV} poderia rodar de 2.399 a 12.636 vezes por quadro, em vez de até 480.000. \\
 Índices de 16 bits & Pendente & O glTF guarda os índices em 16 bits, e a implementação os converte para 32. Com menos de 65.536 vértices, \texttt{UINT16} reduziria o Index Buffer à metade. \\
-Tempo periódico na CPU & Pendente & Enviar \(t \bmod T\) em vez de \(t\) evita a perda de precisão do \texttt{float} após muitas horas (Capítulo~\ref{chap:fundamentacao}). \\
+Tempo periódico na CPU & Pendente & Enviar \(t \bmod T\), calculado em precisão dupla na CPU, evita a perda de precisão do \texttt{float} após cerca de 18 horas. Para não haver salto na volta, os movimentos precisam se repetir em \(T\) (Seção~\ref{sec:limitacoes}). \\
 \bottomrule
 \end{tabular}
 \end{table}

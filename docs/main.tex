@@ -10,6 +10,7 @@
 \usepackage{setspace}
 \usepackage{graphicx}
 \usepackage{float}
+\usepackage{fancyvrb}
 
 \usepackage{amsmath,amssymb}
 \usepackage{booktabs}
@@ -181,38 +182,40 @@
 
 \appendix
 
-\chapter{Checklist das entregas}
+\chapter{Checklist dos requisitos}
 
-\textbf{Entrega 1 -- Revisão bibliográfica}
+\textbf{Revisão bibliográfica}
 \begin{itemize}
     \item[$\boxtimes$] Definição, funcionamento, problema resolvido, vantagens, limitações, custo e quando usar (Capítulo~\ref{chap:fundamentacao}).
-    \item[$\boxtimes$] Três publicações científicas citadas ao longo do texto, com um resumo de cada (Capítulo~\ref{chap:resumos} e \texttt{resumos/}).
+    \item[$\boxtimes$] Três publicações científicas citadas ao longo do texto, com um resumo de cada (Capítulo~\ref{chap:resumos} e \texttt{docs/resumos/}).
     \item[$\boxtimes$] Equações com variáveis, finalidade, momento de uso e relação com a renderização (Capítulo~\ref{chap:equacoes}).
     \item[$\boxtimes$] Relação com o Vulkan: shaders, estágios, buffers, texturas, attachments, fluxo de dados e otimizações (Capítulo~\ref{chap:vulkan}).
     \item[$\boxtimes$] Sete aplicações reais, com onde a técnica é usada e o benefício (Capítulo~\ref{chap:aplicacoes}).
     \item[$\boxtimes$] Dois jogos, com plataforma, situação, momento, elemento, efeito, benefício e fonte técnica (Capítulo~\ref{chap:jogos}).
     \item[$\boxtimes$] Capturas próprias marcadas, com legenda e texto da cena (Capítulo~\ref{chap:jogos}).
-    \item[$\boxtimes$] Links das lives de gameplay do grupo no PDF e em \texttt{videos.txt}; demonstração do UV dinâmico em funcionamento na implementação (Figura~\ref{fig:app-uv-dinamico}).
+    \item[$\boxtimes$] Links das lives de gameplay do grupo no PDF e em \texttt{docs/videos.txt}; demonstração do UV dinâmico em funcionamento na implementação (Figura~\ref{fig:app-uv-dinamico}).
 \end{itemize}
 
-\textbf{Entrega 2 -- Arquitetura do pipeline Vulkan}
+\textbf{Arquitetura do pipeline Vulkan}
 \begin{itemize}
-    \item[$\boxtimes$] Diagrama com legenda de cores e setas, e arquivo-fonte \texttt{diagrama/pipeline\_vulkan.dot} (Figura~\ref{fig:pipeline-vulkan}).
+    \item[$\boxtimes$] Diagrama com legenda de cores e setas, e arquivo-fonte \texttt{docs/diagrama/pipeline\_vulkan.dot} (Figura~\ref{fig:pipeline-vulkan}).
     \item[$\boxtimes$] Fluxo de dados, com entradas e saídas de cada estágio (Tabela~\ref{tab:estagios}).
     \item[$\boxtimes$] Render Pass, Subpass e attachments; descriptor sets e bindings; layout e finalidade dos buffers (Capítulo~\ref{chap:vulkan}).
     \item[$\boxtimes$] Barreiras de memória e dependência do subpass com todos os campos, transições de layout e dependências entre CPU e GPU (Tabelas~\ref{tab:image-barrier} e~\ref{tab:subpass-dep}).
     \item[$\boxtimes$] Justificativa das decisões arquiteturais (Capítulo~\ref{chap:vulkan}).
 \end{itemize}
 
-\textbf{Entrega 3 -- Shaders}
+\textbf{Shaders}
 \begin{itemize}
-    \item[$\boxtimes$] Pseudocódigo original em \texttt{pseudocodigo/uv\_mapping.vert} e \texttt{.frag}; shaders finais comentados no Capítulo~\ref{chap:shaders}.
-    \item[$\boxtimes$] Objetivo, fluxo, entradas e saídas, equações, condições, amostragem, tratamento de limites e resultado esperado (Capítulo~\ref{chap:shaders}).
+    \item[$\boxtimes$] Pseudocódigo em GLSL, comentado trecho a trecho, em \texttt{docs/pseudocodigo/uv\_mapping.vert} e \texttt{uv\_mapping.frag}, reproduzido por completo no Capítulo~\ref{chap:shaders}.
+    \item[$\boxtimes$] Objetivo, fluxo (Figura~\ref{fig:fluxo-shaders}), entradas e saídas, equações e variáveis (Tabela~\ref{tab:shader-equacoes}), condições e laços, amostragem, tratamento de limites, resultado esperado e relação com a técnica (Capítulo~\ref{chap:shaders}).
 \end{itemize}
 
-\textbf{Entrega 4 -- Código}
+\textbf{Código}
 \begin{itemize}
-    \item[$\boxtimes$] Aplicação Vulkan em C++ com shaders em SPIR-V, instruções de compilação e evidências de execução (\texttt{código/} e seu \texttt{README.md}).
+    \item[$\boxtimes$] Aplicação Vulkan em C++17, dividida em arquivos por assunto em \texttt{código/src/}, cobrindo: instância, validação, superfície, GPU e filas, dispositivo lógico, swapchain, render pass, pipeline, framebuffers, comandos, sincronização, loop principal e liberação dos recursos.
+    \item[$\boxtimes$] Shaders do Capítulo~\ref{chap:shaders} compilados para SPIR-V pelo CMake (\texttt{glslc}), carregados como shader modules e ligados aos estágios do pipeline (\texttt{código/README.md}, seção 6).
+    \item[$\boxtimes$] Documento com compilação, execução, bibliotecas e versões, arquivos principais e funcionalidades prontas e futuras (\texttt{código/README.md}), script \texttt{build\_windows.bat} e evidências da execução (\texttt{código/evidencias/}).
 \end{itemize}
 
 \end{document}
